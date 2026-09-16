@@ -8,6 +8,10 @@ import type {
   LoginResult,
   ChangePasswordResult,
   PasswordResetResult,
+  RegisterData,
+  RegistrationResult,
+  RecruiterAccessRequestData,
+  AccessRequestResult,
   UserPreferences,
   SessionInfo
 } from '../types/auth';
@@ -27,13 +31,16 @@ export interface AuthContextType {
   sessions: SessionInfo[];
   login: (credentials: LoginCredentials) => Promise<LoginResult>;
   signIn: (credentials: LoginCredentials) => Promise<LoginResult>;
+  register: (data: RegisterData) => Promise<RegistrationResult>;
   logout: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   changePassword: (current: string, newPass: string) => Promise<ChangePasswordResult>;
+  resetPassword: (newPass: string) => Promise<ChangePasswordResult>;
   updatePreferences: (updates: Partial<UserPreferences>) => void;
   terminateOtherSessions: () => void;
   requestPasswordReset: (email: string) => Promise<PasswordResetResult>;
+  submitAccessRequest: (data: RecruiterAccessRequestData) => Promise<AccessRequestResult>;
 }
 
 const defaultPreferences: UserPreferences = {
@@ -210,6 +217,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const register = async (data: RegisterData): Promise<RegistrationResult> => {
+    setIsLoading(true);
+    try {
+      return await authService.register(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPassword = async (newPass: string): Promise<ChangePasswordResult> => {
+    setIsLoading(true);
+    try {
+      return await authService.resetPassword(newPass);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const submitAccessRequest = async (data: RecruiterAccessRequestData): Promise<AccessRequestResult> => {
+    setIsLoading(true);
+    try {
+      return await authService.submitRecruiterAccessRequest(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const refreshProfile = async (): Promise<void> => {
     if (session) {
       await syncProfile(session);
@@ -248,13 +282,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sessions,
     login,
     signIn: login, // Phase 4 alias
+    register,
     logout,
     signOut: logout, // Phase 4 alias
     refreshProfile,
     changePassword,
+    resetPassword,
     updatePreferences,
     terminateOtherSessions,
-    requestPasswordReset
+    requestPasswordReset,
+    submitAccessRequest
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

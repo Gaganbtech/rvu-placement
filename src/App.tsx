@@ -45,7 +45,10 @@ import { AlumniJoinView } from './components/alumni/AlumniJoinView';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PortalSelector } from './components/auth/PortalSelector';
 import { LoginPage } from './components/auth/LoginPage';
+import { RegisterPage } from './components/auth/RegisterPage';
 import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
+import { RecruiterAccessRequestPage } from './components/auth/RecruiterAccessRequestPage';
 import { RoleRoute } from './components/auth/RoleRoute';
 import type { AuthRole } from './types/auth';
 
@@ -57,8 +60,11 @@ const getInitialRoute = (): string => {
   const hash = window.location.hash;
   if (
     hash.startsWith('#/login') ||
+    hash.startsWith('#/register') ||
     hash.startsWith('#/portals') ||
     hash.startsWith('#/forgot-password') ||
+    hash.startsWith('#/reset-password') ||
+    hash.startsWith('#/request-access') ||
     hash.startsWith('#/student') ||
     hash.startsWith('#/recruiter') ||
     hash.startsWith('#/management') ||
@@ -74,8 +80,11 @@ const getInitialRoute = (): string => {
   const path = window.location.pathname;
   if (
     path.startsWith('/login') ||
+    path.startsWith('/register') ||
     path.startsWith('/portals') ||
     path.startsWith('/forgot-password') ||
+    path.startsWith('/reset-password') ||
+    path.startsWith('/request-access') ||
     path.startsWith('/student') ||
     path.startsWith('/management') ||
     path.startsWith('/recruiter') ||
@@ -169,6 +178,10 @@ const AppContent: React.FC = () => {
         currentRoute.startsWith('/recruiter') ||
         currentRoute.startsWith('/management') ||
         currentRoute.startsWith('/login') ||
+        currentRoute.startsWith('/register') ||
+        currentRoute.startsWith('/forgot-password') ||
+        currentRoute.startsWith('/reset-password') ||
+        currentRoute.startsWith('/request-access') ||
         currentRoute.startsWith('/portals');
 
       if (isProtectedOrAuth) {
@@ -199,8 +212,8 @@ const AppContent: React.FC = () => {
       return null;
     }
 
-    // Authenticated users entering /portals or /login are redirected directly to their assigned portal
-    if (isAuthenticated && user && (currentRoute.startsWith('/portals') || currentRoute.startsWith('/login'))) {
+    // Authenticated users entering /portals, /login, or /register are redirected directly to their assigned portal
+    if (isAuthenticated && user && (currentRoute.startsWith('/portals') || currentRoute.startsWith('/login') || currentRoute.startsWith('/register'))) {
       const authorizedHome = user.role === 'student' ? '/student' : user.role === 'recruiter' ? '/recruiter' : '/management';
       handleNavigatePortal(authorizedHome);
       return null;
@@ -230,6 +243,17 @@ const AppContent: React.FC = () => {
             handleNavigatePortal(target);
           }}
           onNavigateForgotPassword={() => handleNavigatePortal('/forgot-password')}
+          onNavigateRegister={() => handleNavigatePortal('/register')}
+          onNavigateRecruiterRequest={() => handleNavigatePortal('/request-access')}
+        />
+      );
+    }
+
+    if (currentRoute.startsWith('/register')) {
+      return (
+        <RegisterPage
+          onBackToLogin={() => handleNavigatePortal('/login')}
+          onNavigateRecruiterRequest={() => handleNavigatePortal('/request-access')}
         />
       );
     }
@@ -237,6 +261,22 @@ const AppContent: React.FC = () => {
     if (currentRoute.startsWith('/forgot-password')) {
       return (
         <ForgotPasswordPage
+          onBackToLogin={() => handleNavigatePortal('/login')}
+        />
+      );
+    }
+
+    if (currentRoute.startsWith('/reset-password')) {
+      return (
+        <ResetPasswordPage
+          onBackToLogin={() => handleNavigatePortal('/login')}
+        />
+      );
+    }
+
+    if (currentRoute.startsWith('/request-access')) {
+      return (
+        <RecruiterAccessRequestPage
           onBackToLogin={() => handleNavigatePortal('/login')}
         />
       );

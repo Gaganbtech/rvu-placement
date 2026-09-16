@@ -22,13 +22,17 @@ interface LoginPageProps {
   onBackToPortals: () => void;
   onLoginSuccess: (role: UserRole) => void;
   onNavigateForgotPassword?: () => void;
+  onNavigateRegister?: () => void;
+  onNavigateRecruiterRequest?: () => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({
   initialRole = 'student',
   onBackToPortals,
   onLoginSuccess,
-  onNavigateForgotPassword
+  onNavigateForgotPassword,
+  onNavigateRegister,
+  onNavigateRecruiterRequest
 }) => {
   const { login } = useAuth();
   
@@ -408,16 +412,42 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </div>
               </form>
 
-              {/* Bottom Support Link */}
-              <div className="mt-5 pt-4 border-t border-white/5 text-center text-xs text-[#AEB7BC]">
-                <span>Need assistance? Contact </span>
-                <a 
-                  href="mailto:placement@rvu.edu.in" 
-                  className="text-[#CCAA68] hover:underline font-mono"
-                >
-                  placement@rvu.edu.in
-                </a>
-              </div>
+                {/* Register Now Link (Requirement 1) */}
+                <div className="mt-4 pt-3 border-t border-white/5 text-center text-xs text-[#AEB7BC]">
+                  <span>Don't have an account? </span>
+                  <button
+                    type="button"
+                    onClick={onNavigateRegister}
+                    className="text-[#CCAA68] hover:text-[#D8B978] hover:underline font-bold transition-colors"
+                  >
+                    Register Now
+                  </button>
+                </div>
+
+                {/* Recruiter Access Request Link (Requirement 8) */}
+                {onNavigateRecruiterRequest && (
+                  <div className="mt-2 text-center text-xs text-[#78848C]">
+                    <span>Corporate Recruiter? </span>
+                    <button
+                      type="button"
+                      onClick={onNavigateRecruiterRequest}
+                      className="text-[#AEB7BC] hover:text-[#CCAA68] hover:underline transition-colors font-medium"
+                    >
+                      Request access
+                    </button>
+                  </div>
+                )}
+
+                {/* Bottom Support Link */}
+                <div className="mt-4 pt-3 border-t border-white/5 text-center text-[11px] text-[#AEB7BC]">
+                  <span>Need assistance? Contact </span>
+                  <a 
+                    href="mailto:placement@rvu.edu.in" 
+                    className="text-[#CCAA68] hover:underline font-mono"
+                  >
+                    placement@rvu.edu.in
+                  </a>
+                </div>
 
             </div>
           </div>

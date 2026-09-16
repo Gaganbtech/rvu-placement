@@ -10,7 +10,11 @@ import type {
   LoginCredentials, 
   LoginResult, 
   ChangePasswordResult,
-  PasswordResetResult
+  PasswordResetResult,
+  RegisterData,
+  RegistrationResult,
+  RecruiterAccessRequestData,
+  AccessRequestResult
 } from '../types/auth';
 import type { ProfileRow } from '../types/database';
 
@@ -53,11 +57,11 @@ export interface PasswordStrengthResult {
 }
 
 export function evaluatePasswordStrength(password: string): PasswordStrengthResult {
-  if (!password || password.length < 6) {
-    return { score: 1, label: 'Weak', message: 'Password must be at least 6 characters.' };
+  if (!password || password.length < 8) {
+    return { score: 1, label: 'Weak', message: 'Password must be at least 8 characters.' };
   }
   let score = 2;
-  if (password.length >= 8) score++;
+  if (password.length >= 10) score++;
   if (/[A-Z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
@@ -71,9 +75,75 @@ export function evaluatePasswordStrength(password: string): PasswordStrengthResu
   return { score: 1, label: 'Weak', message: 'Password is too simple.' };
 }
 
+/**
+ * Sanitize raw Supabase and Postgres error messages into safe user-facing notices.
+ * Never expose internal SQL, column names, JWT claims, or technical trace details.
+ */
+export function sanitizeAuthError(error: unknown): string {
+  if (!error) return 'Unable to sign in right now. Please try again.';
+  const msg = typeof error === 'string' 
+    ? error 
+    : (error as any)?.message || String(error);
+  const lower = msg.toLowerCase();
+
+  if (
+    lower.includes('invalid login credentials') ||
+    lower.includes('invalid_credentials') ||
+    lower.includes('invalid grant') ||
+    lower.includes('invalid_grant') ||
+    lower.includes('wrong password') ||
+    lower.includes('user not found')
+  ) {
+    return 'Email or password is incorrect.';
+  }
+
+  if (
+    lower.includes('email not confirmed') ||
+    lower.includes('not confirmed') ||
+    lower.includes('email_not_confirmed')
+  ) {
+    return 'Please check your email to verify your account before signing in.';
+  }
+
+  if (
+    lower.includes('rate limit') ||
+    lower.includes('too many requests') ||
+    lower.includes('over_request_rate_limit')
+  ) {
+    return 'Your account is temporarily unavailable due to too many failed attempts. Please try again later.';
+  }
+
+  if (
+    lower.includes('user already registered') ||
+    lower.includes('already registered') ||
+    lower.includes('already exists')
+  ) {
+    return 'An account already exists for this email. Try signing in or reset your password.';
+  }
+
+  if (lower.includes('password should be at least') || lower.includes('weak password')) {
+    return 'Password must be at least 8 characters long.';
+  }
+
+  // Never expose raw Postgres, Supabase, JWT, schema, or column names
+  if (
+    lower.includes('postgres') ||
+    lower.includes('pgrst') ||
+    lower.includes('relation') ||
+    lower.includes('column') ||
+    lower.includes('violates') ||
+    lower.includes('syntax')
+  ) {
+    return 'Unable to sign in right now. Please try again.';
+  }
+
+  return 'Unable to sign in right now. Please try again.';
+}
+
 export class SupabaseAuthService {
   public normalizeRole = normalizeRole;
   public evaluatePasswordStrength = evaluatePasswordStrength;
+  public sanitizeAuthError = sanitizeAuthError;
 
   /**
    * Normal Email + Password Login via Supabase Auth
@@ -108,7 +178,7 @@ export class SupabaseAuthService {
       if (authError || !authData.user) {
         return {
           success: false,
-          error: authError?.message || 'Invalid email or password.'
+          error: sanitizeAuthError(authError)
         };
       }
 
@@ -116,23 +186,11 @@ export class SupabaseAuthService {
       const profile = await this.fetchUserProfile(authData.user.id, email);
 
       if (!profile) {
-        // Safe fallback if profile trigger has slight replication latency
-        const fallbackRole = normalizeRole(authData.user.user_metadata?.role || requestedPortal || 'student');
-        const authUser: AuthUser = {
-          id: authData.user.id,
-          email: authData.user.email || email,
-          role: fallbackRole,
-          displayName: authData.user.user_metadata?.full_name || deriveDisplayNameFromEmail(email),
-          isActive: true,
-          mustChangePassword: false,
-          createdAt: authData.user.created_at
-        };
-
-        const redirect = fallbackRole === 'student' ? '/student' : fallbackRole === 'recruiter' ? '/recruiter' : '/management';
+        // Strict: Do not guess or default to student
+        await supabase.auth.signOut();
         return {
-          success: true,
-          user: authUser,
-          redirectRoute: redirect
+          success: false,
+          error: 'Your account is not fully provisioned yet. Please contact the RVU Placement Cell.'
         };
       }
 
@@ -141,11 +199,20 @@ export class SupabaseAuthService {
         await supabase.auth.signOut();
         return {
           success: false,
-          error: 'Your account is deactivated. Please contact the RVU Placement Cell.'
+          error: 'Your account is awaiting activation. Please contact the RVU Placement Cell.'
         };
       }
 
-      // 4. Role Enforcement & Conflict Prevention
+      // 4. Role validation
+      if (!profile.role || !['student', 'recruiter', 'placement'].includes(profile.role)) {
+        await supabase.auth.signOut();
+        return {
+          success: false,
+          error: 'Your account does not have an assigned portal role. Please contact the RVU Placement Cell.'
+        };
+      }
+
+      // 5. Role Enforcement & Conflict Prevention
       const authoritativeRole = profile.role;
       if (requestedPortal && requestedPortal !== authoritativeRole) {
         await supabase.auth.signOut();
@@ -182,10 +249,143 @@ export class SupabaseAuthService {
         redirectRoute
       };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Authentication failed.';
       return {
         success: false,
-        error: message
+        error: sanitizeAuthError(err)
+      };
+    }
+  }
+
+  /**
+   * Controlled Student Self-Registration via Supabase Auth
+   * Browser submits only minimum registration information (full_name, email, password).
+   * Server-side handle_new_user trigger strictly assigns role = 'student'.
+   */
+  public async register(data: RegisterData): Promise<RegistrationResult> {
+    const fullName = (data.fullName || '').trim();
+    const email = (data.email || '').trim().toLowerCase();
+    const password = data.password || '';
+    const confirmPassword = data.confirmPassword || '';
+
+    if (!fullName || fullName.length < 2) {
+      return { success: false, error: 'Please enter your full legal name.' };
+    }
+
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+
+    if (password.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters long.' };
+    }
+
+    if (confirmPassword && password !== confirmPassword) {
+      return { success: false, error: 'Passwords do not match. Please verify and try again.' };
+    }
+
+    const strength = evaluatePasswordStrength(password);
+    if (strength.score < 2) {
+      return { success: false, error: 'Password is too weak. Please use a combination of uppercase, numbers, or symbols.' };
+    }
+
+    if (!isSupabaseConfigured() || !supabase) {
+      return {
+        success: false,
+        error: getSupabaseConfigError() || 'Registration service is currently unavailable. Please try again later.'
+      };
+    }
+
+    try {
+      // CRITICAL SECURITY: Never pass role or is_active in client metadata!
+      // Server-side handle_new_user trigger strictly derives role as 'student'
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName
+          }
+        }
+      });
+
+      if (authError) {
+        const errorMsg = sanitizeAuthError(authError);
+        return {
+          success: false,
+          error: errorMsg
+        };
+      }
+
+      if (!authData.user) {
+        return {
+          success: false,
+          error: 'Unable to create account. Please try again.'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Account created. Please check your email to verify your account.',
+        requiresEmailVerification: true
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: sanitizeAuthError(err)
+      };
+    }
+  }
+
+  /**
+   * Submit controlled recruiter onboarding access request
+   */
+  public async submitRecruiterAccessRequest(data: RecruiterAccessRequestData): Promise<AccessRequestResult> {
+    const fullName = (data.fullName || '').trim();
+    const email = (data.email || '').trim().toLowerCase();
+    const companyName = (data.companyName || '').trim();
+
+    if (!fullName) {
+      return { success: false, error: 'Please enter your full name.' };
+    }
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      return { success: false, error: 'Please enter a valid corporate email address.' };
+    }
+    if (!companyName) {
+      return { success: false, error: 'Please enter your organization or company name.' };
+    }
+
+    if (!isSupabaseConfigured() || !supabase) {
+      return { success: false, error: 'Service is currently unavailable. Please contact placement@rvu.edu.in.' };
+    }
+
+    try {
+      const { error } = await supabase.from('access_requests').insert({
+        email,
+        full_name: fullName,
+        company_name: companyName,
+        designation: data.designation?.trim() || null,
+        phone: data.phone?.trim() || null,
+        requested_type: 'recruiter',
+        status: 'pending',
+        notes: data.message?.trim() || null
+      });
+
+      if (error) {
+        console.error('[RVU Auth] Access request error:', error);
+        return {
+          success: false,
+          error: 'Unable to submit request at this time. Please contact placement@rvu.edu.in directly.'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Recruiter access request submitted successfully. The RVU Placement Cell will review your corporate credentials and contact you.'
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Unable to submit request at this time. Please contact placement@rvu.edu.in directly.'
       };
     }
   }
@@ -229,7 +429,8 @@ export class SupabaseAuthService {
    * Request password reset via Supabase Auth
    */
   public async requestPasswordReset(email: string): Promise<PasswordResetResult> {
-    if (!email || !email.includes('@')) {
+    const trimmed = (email || '').trim().toLowerCase();
+    if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
       return { success: false, message: '', error: 'Please enter a valid email address.' };
     }
 
@@ -239,39 +440,42 @@ export class SupabaseAuthService {
 
     try {
       const redirectUrl = typeof window !== 'undefined' 
-        ? `${window.location.origin}/#/forgot-password` 
+        ? `${window.location.origin}/#/reset-password` 
         : undefined;
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
         redirectTo: redirectUrl
       });
 
       if (error) {
-        return { success: false, message: '', error: error.message };
+        // Safe message to prevent account enumeration
+        return {
+          success: true,
+          message: 'If an account exists for this email, password reset instructions have been sent.'
+        };
       }
 
       return {
         success: true,
         message: 'If an account exists for this email, password reset instructions have been sent.'
       };
-    } catch (err: unknown) {
+    } catch {
       return {
-        success: false,
-        message: '',
-        error: err instanceof Error ? err.message : 'Unable to send password reset.'
+        success: true,
+        message: 'If an account exists for this email, password reset instructions have been sent.'
       };
     }
   }
 
   /**
-   * Update authenticated user password
+   * Reset password for user following email reset token verification
    */
-  public async changePassword(_current: string, newPass: string): Promise<ChangePasswordResult> {
-    if (!newPass || newPass.length < 6) {
+  public async resetPassword(newPass: string): Promise<ChangePasswordResult> {
+    if (!newPass || newPass.length < 8) {
       return {
         success: false,
         message: '',
-        error: 'New password must be at least 6 characters.'
+        error: 'Password must be at least 8 characters long.'
       };
     }
 
@@ -292,7 +496,53 @@ export class SupabaseAuthService {
         return {
           success: false,
           message: '',
-          error: error.message
+          error: sanitizeAuthError(error)
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Password updated successfully. Please sign in with your new password.'
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        message: '',
+        error: sanitizeAuthError(err)
+      };
+    }
+  }
+
+  /**
+   * Update authenticated user password
+   */
+  public async changePassword(_current: string, newPass: string): Promise<ChangePasswordResult> {
+    if (!newPass || newPass.length < 8) {
+      return {
+        success: false,
+        message: '',
+        error: 'New password must be at least 8 characters long.'
+      };
+    }
+
+    if (!supabase) {
+      return {
+        success: false,
+        message: '',
+        error: 'Authentication service unavailable.'
+      };
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPass
+      });
+
+      if (error) {
+        return {
+          success: false,
+          message: '',
+          error: sanitizeAuthError(error)
         };
       }
 
@@ -304,7 +554,7 @@ export class SupabaseAuthService {
       return {
         success: false,
         message: '',
-        error: err instanceof Error ? err.message : 'Failed to update password.'
+        error: sanitizeAuthError(err)
       };
     }
   }

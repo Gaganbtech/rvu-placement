@@ -72,8 +72,8 @@ async function runTests() {
   });
   assert(liveAuthAttempt.success === false, 'Live Supabase Auth correctly rejects invalid credentials');
   assert(
-    Boolean(liveAuthAttempt.error === 'Invalid login credentials' || liveAuthAttempt.error?.includes('Invalid')),
-    'Returns authentic Supabase Auth error message'
+    liveAuthAttempt.error === 'Email or password is incorrect.',
+    'Returns safe sanitized user-facing error message: "Email or password is incorrect."'
   );
 
   console.log('\n--- Test Suite 7: User Mapping & Canonical Types ---');

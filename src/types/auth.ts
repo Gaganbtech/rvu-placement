@@ -150,3 +150,32 @@ export interface PasswordResetResult {
   message: string;
   error?: string;
 }
+
+export interface RegisterData {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword?: string;
+}
+
+export interface RegistrationResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  requiresEmailVerification?: boolean;
+}
+
+export interface RecruiterAccessRequestData {
+  fullName: string;
+  email: string;
+  companyName: string;
+  designation?: string;
+  phone?: string;
+  message?: string;
+}
+
+export interface AccessRequestResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+}

@@ -525,6 +525,55 @@ export interface Database {
         };
         Relationships: [];
       };
+
+      access_requests: {
+        Row: {
+          id: string;
+          auth_user_id: string | null;
+          email: string;
+          full_name: string;
+          company_name: string | null;
+          designation: string | null;
+          phone: string | null;
+          requested_type: 'recruiter' | 'student' | 'other';
+          status: 'pending' | 'approved' | 'rejected';
+          notes: string | null;
+          created_at: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          auth_user_id?: string | null;
+          email: string;
+          full_name: string;
+          company_name?: string | null;
+          designation?: string | null;
+          phone?: string | null;
+          requested_type: 'recruiter' | 'student' | 'other';
+          status?: 'pending' | 'approved' | 'rejected';
+          notes?: string | null;
+          created_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          auth_user_id?: string | null;
+          email?: string;
+          full_name?: string;
+          company_name?: string | null;
+          designation?: string | null;
+          phone?: string | null;
+          requested_type?: 'recruiter' | 'student' | 'other';
+          status?: 'pending' | 'approved' | 'rejected';
+          notes?: string | null;
+          created_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
@@ -545,3 +594,4 @@ export type OfferRow = Database['public']['Tables']['offers']['Row'];
 export type StudentDocumentRow = Database['public']['Tables']['student_documents']['Row'];
 export type NotificationRow = Database['public']['Tables']['notifications']['Row'];
 export type AuditLogRow = Database['public']['Tables']['audit_logs']['Row'];
+export type AccessRequestRow = Database['public']['Tables']['access_requests']['Row'];

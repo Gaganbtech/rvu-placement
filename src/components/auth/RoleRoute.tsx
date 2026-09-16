@@ -3,6 +3,7 @@ import type { UserRole } from '../../types/auth';
 import { useAuth } from '../../context/AuthContext';
 import { AccessRestrictedView } from './AccessRestrictedView';
 import { FirstLoginPasswordModal } from './FirstLoginPasswordModal';
+import { AccountStatusView } from './AccountStatusView';
 
 interface RoleRouteProps {
   allowedRoles: UserRole[];
@@ -79,7 +80,27 @@ export const RoleRoute: React.FC<RoleRouteProps> = ({
     );
   }
 
-  // 3. Unauthorized Cross-Portal Access Attempt -> Render Access Restricted View
+  // 3. Inactive Account Gate (Requirement 14)
+  if (user.isActive === false) {
+    return (
+      <AccountStatusView
+        status="inactive"
+        onNavigateLogin={() => onNavigatePortal('/login')}
+      />
+    );
+  }
+
+  // 4. Missing / Unprovisioned Role Gate (Requirement 15)
+  if (!user.role || !['student', 'recruiter', 'placement'].includes(user.role)) {
+    return (
+      <AccountStatusView
+        status="unprovisioned"
+        onNavigateLogin={() => onNavigatePortal('/login')}
+      />
+    );
+  }
+
+  // 5. Unauthorized Cross-Portal Access Attempt -> Render Access Restricted View
   if (!allowedRoles.includes(user.role)) {
     return (
       <AccessRestrictedView

@@ -93,8 +93,8 @@ async function runE2ETests() {
   });
   assert(liveAuthAttempt.success === false, 'Live Supabase Auth rejects unauthorized credentials');
   assert(
-    Boolean(liveAuthAttempt.error === 'Invalid login credentials' || liveAuthAttempt.error?.includes('Invalid')),
-    'Authentic Supabase Auth error message received'
+    liveAuthAttempt.error === 'Email or password is incorrect.',
+    'Safe sanitized user-facing error message received: "Email or password is incorrect."'
   );
 
   // STEP 7: Route Protection & Cross-Portal Boundary Enforcement
