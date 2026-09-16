@@ -22,7 +22,14 @@ export type OpportunityLifecycle =
   | 'ARCHIVED'
   | 'REJECTED';
 
-export type OpportunityType = 'Placement' | 'Internship' | 'Internship + PPO';
+export type OpportunityType = 
+  | 'Placement' 
+  | 'Internship' 
+  | 'Internship + PPO'
+  | 'Live Project'
+  | 'Industry Mentoring'
+  | 'Capstone Project'
+  | 'International Internship';
 export type WorkMode = 'On-site' | 'Hybrid' | 'Remote';
 
 export type ApplicationStage = 
@@ -167,6 +174,9 @@ export interface Student {
     role?: string;
     duration?: string;
   };
+
+  savedOpportunityIds?: string[];
+  completedPreparationTaskIds?: string[];
 }
 
 // 2. Company Record
@@ -227,7 +237,7 @@ export interface Opportunity {
   role: string;
   department?: string;
   jobFunction?: string;
-  type: 'Placement' | 'Internship' | 'Internship + PPO';
+  type: OpportunityType;
   location: string;
   workMode: 'On-site' | 'Hybrid' | 'Remote';
   ctcLpa: string; // e.g. '₹14.0 - ₹18.0 LPA' or '₹60,000 / month Stipend'
@@ -272,8 +282,11 @@ export interface Opportunity {
   
   applicationDeadline: string; // ISO date or display string
   driveDate: string;
-  openingsCount: number;
+  openingsCount?: number;
   matchScoreForDemoStudent?: number; // UI demo matching score
+  source?: string;
+  sourceUrl?: string;
+  verifiedAt?: string;
 }
 
 // 5. Placement Drive Entity
@@ -314,7 +327,7 @@ export interface Application {
   companyName: string;
   companyLogo: string;
   role: string;
-  type: 'Placement' | 'Internship' | 'Internship + PPO';
+  type: OpportunityType;
   location: string;
   compensation: string;
   
@@ -673,6 +686,73 @@ export interface RecruiterNotification {
     | 'ASSESSMENT'
     | 'OFFER_STATUS'
     | 'CAR_COMMUNICATION';
+}
+
+// 21. Career Preparation Data Models
+export type PreparationCategory = 
+  | 'APTITUDE'
+  | 'TECHNICAL'
+  | 'CODING'
+  | 'COMMUNICATION'
+  | 'INTERVIEW'
+  | 'RESUME'
+  | 'GROUP_DISCUSSION'
+  | 'DOMAIN';
+
+export interface PreparationTask {
+  id: string;
+  category: PreparationCategory;
+  trackId: string;
+  title: string;
+  description: string;
+  estimatedMinutes: number;
+  difficulty: 'Foundation' | 'Intermediate' | 'Advanced';
+  isCompleted: boolean;
+  learningPoints: string[];
+  resourceLink?: string;
+}
+
+export interface PreparationTrack {
+  id: string;
+  category: PreparationCategory;
+  title: string;
+  description: string;
+  iconName: string;
+  tasksCount: number;
+  completedTasksCount: number;
+  tasks: PreparationTask[];
+}
+
+export interface InterviewPrepQuestion {
+  id: string;
+  category: 'Behavioral' | 'Technical' | 'Situational' | 'Leadership';
+  question: string;
+  guidance: string;
+  starFramework: {
+    situation: string;
+    task: string;
+    action: string;
+    result: string;
+  };
+  sampleAnswerSummary?: string;
+}
+
+export interface StudentSearchItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  category: 'Opportunity' | 'Application' | 'Drive' | 'Preparation' | 'Resource' | 'Document' | 'Event';
+  route: string;
+  badge?: string;
+}
+
+export interface QuickActionItem {
+  id: string;
+  title: string;
+  description: string;
+  route?: string;
+  actionKey?: string;
+  iconName: string;
 }
 
 

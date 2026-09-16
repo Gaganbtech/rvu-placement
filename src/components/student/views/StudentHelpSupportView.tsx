@@ -7,7 +7,10 @@ import {
   Mail, 
   MapPin, 
   Clock,
-  Plus
+  Plus,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import type { SupportTicket, TicketCategory, Student } from '../../../data/platform/types';
 import { Button } from '../../ui/Button';
@@ -28,6 +31,8 @@ export const StudentHelpSupportView: React.FC<StudentHelpSupportViewProps> = ({
   const [category, setCategory] = useState<TicketCategory>('ELIGIBILITY');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +40,13 @@ export const StudentHelpSupportView: React.FC<StudentHelpSupportViewProps> = ({
 
     setIsSubmitting(true);
     setTimeout(() => {
-      onCreateTicket(subject, category, description);
+      const newTicket = onCreateTicket(subject, category, description);
       setIsSubmitting(false);
       setIsModalOpen(false);
       setSubject('');
       setDescription('');
-      alert('Support query submitted to the Placement Office. Your ticket reference has been generated.');
+      setSuccessToast(`Ticket #${newTicket.id} created successfully. CAR Officer will review and update status.`);
+      setTimeout(() => setSuccessToast(null), 5000);
     }, 450);
   };
 
@@ -57,26 +63,48 @@ export const StudentHelpSupportView: React.FC<StudentHelpSupportViewProps> = ({
     }
   };
 
+  const faqs = [
+    {
+      q: 'How does the RVU One-Offer Placement Policy work?',
+      a: 'Under official RV University guidelines, once a student receives and formally accepts an employment offer from a campus recruitment partner, their profile is marked as "Placed" to allow fair interview opportunities for cohort peers.'
+    },
+    {
+      q: 'What if my SIS academic CGPA has not updated after recent semester results?',
+      a: 'Official CGPA and credit records are synchronized weekly from the RVU Examination Cell. If your grade card shows a discrepancy, please raise a ticket under "Eligibility & CGPA Criteria" with your official grade sheet attached.'
+    },
+    {
+      q: 'Can I replace my resume after applying to an active opportunity?',
+      a: 'Once an application is submitted to an employer, the snapshot of your resume at submission time is archived for recruiter review. However, updating your primary resume in the Document Vault ensures all future applications receive the latest PDF.'
+    },
+    {
+      q: 'What is required on the day of an on-campus placement drive?',
+      a: 'Students must arrive 15 minutes prior to the reporting time in formal business attire, carrying their physical RVU Smart Student ID and 2 hard copies of their CAR-verified resume.'
+    }
+  ];
+
   return (
     <div className="space-y-8 animate-fadeIn pb-16">
       
       {/* Header Banner */}
-      <div className="rounded-2xl bg-navy-card border border-gold-border/60 p-6 sm:p-8 space-y-3">
+      <div className="rounded-2xl bg-navy-card border border-gold-border/60 p-6 sm:p-8 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold px-2 py-0.5 rounded bg-gold/15 border border-gold/30">
                 STUDENT ↔ PLACEMENT OFFICE DESK
               </span>
               <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                 Direct CAR Channel
               </span>
+              <span className="text-[10px] font-mono text-rvu-muted bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                SRN: {student.id}
+              </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white font-display mt-1">
-              Help & Support Desk
+            <h1 className="text-2xl sm:text-3xl font-bold text-white font-display mt-2">
+              Corporate & Alumni Relations Help Desk
             </h1>
             <p className="text-xs sm:text-sm text-rvu-muted max-w-2xl leading-relaxed mt-1">
-              Raise queries directly with the Corporate & Alumni Relations (CAR) office regarding placement eligibility, test conflicts, drive logistics, or documentation.
+              Submit placement inquiries, resolve test scheduling conflicts, request document verifications, or connect with your designated Faculty Placement Officer.
             </p>
           </div>
 
@@ -89,87 +117,135 @@ export const StudentHelpSupportView: React.FC<StudentHelpSupportViewProps> = ({
             Raise Placement Query
           </Button>
         </div>
+
+        {/* Success Toast */}
+        {successToast && (
+          <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center gap-2 animate-fadeIn">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{successToast}</span>
+          </div>
+        )}
       </div>
 
       {/* Grid: Tickets List & Contact Info */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left 2 Cols: Tickets History */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gold uppercase tracking-wider font-mono">
-              My Support Tickets ({tickets.length})
-            </h2>
-            <span className="text-xs font-mono text-rvu-subtle">
-              Managed by CAR Command Center
-            </span>
+        {/* Left 2 Cols: Tickets History & FAQ */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gold uppercase tracking-wider font-mono">
+                My Support Tickets ({tickets.length})
+              </h2>
+              <span className="text-xs font-mono text-rvu-subtle">
+                Managed by CAR Command Center
+              </span>
+            </div>
+
+            {tickets.length === 0 ? (
+              <div className="p-12 text-center rounded-2xl bg-navy-card border border-white/10 text-rvu-muted space-y-2">
+                <LifeBuoy className="w-8 h-8 text-rvu-subtle mx-auto" />
+                <p className="text-sm font-medium text-white">No active support tickets.</p>
+                <p className="text-xs text-rvu-subtle">Have questions about eligibility, drive venues, or offers? Raise a query using the button above.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {tickets.map((t) => {
+                  const statusBadge = getStatusBadge(t.status);
+
+                  return (
+                    <div
+                      key={t.id}
+                      className="p-5 sm:p-6 rounded-2xl bg-navy-card border border-gold-border/40 hover:border-gold/60 transition-all space-y-3 shadow-card"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-bold text-gold">
+                            {t.id}
+                          </span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-rvu-muted border border-white/10 uppercase">
+                            {t.category}
+                          </span>
+                        </div>
+
+                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded border font-bold uppercase ${statusBadge.style}`}>
+                          {statusBadge.label}
+                        </span>
+                      </div>
+
+                      <h3 className="text-sm font-bold text-white leading-snug">
+                        {t.subject}
+                      </h3>
+
+                      <p className="text-xs text-rvu-muted leading-relaxed">
+                        {t.description}
+                      </p>
+
+                      {/* Admin Response if available */}
+                      {t.adminResponse && (
+                        <div className="p-3.5 rounded-xl bg-[#0E1720] border border-emerald-500/30 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] font-mono text-emerald-400">
+                            <span className="font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Official Response from Placement Office:
+                            </span>
+                            <span>{t.respondedAt}</span>
+                          </div>
+                          <p className="text-[11px] text-rvu-text leading-relaxed">
+                            {t.adminResponse}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-rvu-subtle">
+                        <span>Logged: {t.createdAt}</span>
+                        {t.assignedOfficer && (
+                          <span>Assigned Officer: <strong className="text-white">{t.assignedOfficer}</strong></span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {tickets.length === 0 ? (
-            <div className="p-12 text-center rounded-2xl bg-navy-card border border-white/10 text-rvu-muted space-y-2">
-              <LifeBuoy className="w-8 h-8 text-rvu-subtle mx-auto" />
-              <p className="text-sm">You have not raised any support tickets.</p>
+          {/* Placement FAQ Accordion */}
+          <div className="p-6 rounded-2xl bg-navy-card border border-gold-border/40 space-y-4 shadow-card">
+            <div className="flex items-center gap-2">
+              <HelpCircle className="w-4 h-4 text-gold" />
+              <h3 className="text-sm font-bold text-white font-display">
+                Frequently Asked Placement Questions
+              </h3>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {tickets.map((t) => {
-                const statusBadge = getStatusBadge(t.status);
 
+            <div className="space-y-2">
+              {faqs.map((faq, index) => {
+                const isExpanded = expandedFaqIndex === index;
                 return (
                   <div
-                    key={t.id}
-                    className="p-5 sm:p-6 rounded-2xl bg-navy-card border border-gold-border/40 hover:border-gold/60 transition-all space-y-3 shadow-card"
+                    key={index}
+                    className="p-3 rounded-xl bg-[#0E1720] border border-white/5 cursor-pointer select-none transition-all hover:border-gold/30"
+                    onClick={() => setExpandedFaqIndex(isExpanded ? null : index)}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-gold">
-                          {t.id}
-                        </span>
-                        <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-white/5 text-rvu-muted border border-white/10 uppercase">
-                          {t.category}
-                        </span>
-                      </div>
-
-                      <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded border font-bold uppercase ${statusBadge.style}`}>
-                        {statusBadge.label}
-                      </span>
-                    </div>
-
-                    <h3 className="text-sm font-bold text-white leading-snug">
-                      {t.subject}
-                    </h3>
-
-                    <p className="text-xs text-rvu-muted leading-relaxed">
-                      {t.description}
-                    </p>
-
-                    {/* Admin Response if available */}
-                    {t.adminResponse && (
-                      <div className="p-3.5 rounded-xl bg-[#0E1720] border border-emerald-500/30 text-xs space-y-1.5">
-                        <div className="flex items-center justify-between text-[10px] font-mono text-emerald-400">
-                          <span className="font-bold flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Official Response from Placement Office:
-                          </span>
-                          <span>{t.respondedAt}</span>
-                        </div>
-                        <p className="text-[11px] text-rvu-text leading-relaxed">
-                          {t.adminResponse}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-rvu-subtle">
-                      <span>Created: {t.createdAt}</span>
-                      {t.assignedOfficer && (
-                        <span>Assigned Officer: <strong className="text-white">{t.assignedOfficer}</strong></span>
+                    <div className="flex items-center justify-between text-xs font-semibold text-white">
+                      <span>{faq.q}</span>
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-gold shrink-0 ml-2" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-rvu-subtle shrink-0 ml-2" />
                       )}
                     </div>
+                    {isExpanded && (
+                      <p className="text-xs text-rvu-muted mt-2 pt-2 border-t border-white/5 leading-relaxed">
+                        {faq.a}
+                      </p>
+                    )}
                   </div>
                 );
               })}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Right Col: CAR Office Contact Information */}
@@ -194,16 +270,16 @@ export const StudentHelpSupportView: React.FC<StudentHelpSupportViewProps> = ({
                 <MapPin className="w-4 h-4 text-gold shrink-0 mt-0.5" />
                 <div>
                   <strong className="text-white block">CAR Central Office:</strong>
-                  <span>Ground Floor, Administrative Block, RV University, RV Vidyanikethan Post, Bengaluru 560059</span>
+                  <span>Ground Floor, Administrative Block, RV University, RV Vidyanikethan Post, Mysuru Road, Bengaluru 560059</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-gold shrink-0" />
                 <div>
-                  <strong className="text-white block">Placement Desk:</strong>
-                  <a href="mailto:car.placements@rvu.edu.in" className="text-gold hover:underline">
-                    car.placements@rvu.edu.in
+                  <strong className="text-white block">Official Placement Desk:</strong>
+                  <a href="mailto:placements@rvu.edu.in" className="text-gold hover:underline">
+                    placements@rvu.edu.in
                   </a>
                 </div>
               </div>
@@ -211,18 +287,18 @@ export const StudentHelpSupportView: React.FC<StudentHelpSupportViewProps> = ({
               <div className="flex items-center gap-2.5">
                 <Clock className="w-4 h-4 text-gold shrink-0" />
                 <div>
-                  <strong className="text-white block">Office Hours:</strong>
+                  <strong className="text-white block">Office Working Hours:</strong>
                   <span>Monday – Friday: 09:00 AM – 05:30 PM IST</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Guidelines */}
+          {/* SLA Guidelines */}
           <div className="p-5 rounded-2xl bg-[#0E1720] border border-white/5 space-y-2 text-xs text-rvu-subtle">
             <strong className="text-white block font-mono text-[11px]">Ticket SLA Guideline:</strong>
             <p className="text-[11px] leading-relaxed">
-              Drive-related queries raised at least 24 hours prior to a campus drive are prioritized. Emergency queries can be escalated through your Faculty Placement Coordinator.
+              Drive-related queries raised at least 24 hours prior to a scheduled campus drive are prioritized by the duty placement coordinator.
             </p>
           </div>
 
@@ -232,7 +308,7 @@ export const StudentHelpSupportView: React.FC<StudentHelpSupportViewProps> = ({
 
       {/* Modal: Raise Support Query */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="relative w-full max-w-lg bg-[#131F2A] border border-gold-border rounded-2xl shadow-2xl p-6 text-rvu-text space-y-5">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
@@ -300,7 +376,7 @@ export const StudentHelpSupportView: React.FC<StudentHelpSupportViewProps> = ({
               <div className="p-3 rounded-xl bg-[#0E1720] border border-white/5 text-[11px] text-rvu-subtle flex items-start gap-2">
                 <ShieldCheck className="w-4 h-4 text-gold shrink-0 mt-0.5" />
                 <span>
-                  Query will be logged under student ID <strong>{student.id}</strong> and routed to the CAR officer.
+                  Query will be logged under student ID <strong>{student.id}</strong> and routed directly to the CAR office.
                 </span>
               </div>
 

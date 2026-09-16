@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStudentStore } from '../../data/platform/studentStore';
 import { StudentSidebar } from './StudentSidebar';
 import { StudentHeader } from './StudentHeader';
 import { ApplyModal } from './modals/ApplyModal';
+import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { OFFICIAL_PREPARATION_TRACKS } from '../../data/platform/preparationData';
 import type { Opportunity } from '../../data/platform/types';
 
 // Views
@@ -21,6 +23,8 @@ import { StudentDocumentsView } from './views/StudentDocumentsView';
 import { StudentProfileView } from './views/StudentProfileView';
 import { StudentNotificationsView } from './views/StudentNotificationsView';
 import { StudentHelpSupportView } from './views/StudentHelpSupportView';
+import { StudentSettingsView, type StudentSettingsTab } from './views/StudentSettingsView';
+import { useAuth } from '../../context/AuthContext';
 
 interface StudentLayoutProps {
   currentPath: string;
@@ -33,8 +37,11 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
   onNavigate,
   onBackToPublic
 }) => {
+  const { user } = useAuth();
   const store = useStudentStore();
+  const currentStudent = store.getStudent(user?.email);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [applyModalOpp, setApplyModalOpp] = useState<Opportunity | null>(null);
 
   // Active resume for application
@@ -42,6 +49,18 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
 
   // Normalize subroute string
   const normalizedRoute = currentPath.startsWith('#') ? currentPath.slice(1) : currentPath;
+
+  // Global keyboard shortcut for Spotlight Search (⌘K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchModalOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // View dispatcher
   const renderCurrentView = () => {
@@ -51,7 +70,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
       return (
         <StudentOpportunityDetailView
           opportunityId={oppId}
-          student={store.student}
+          student={currentStudent}
           opportunities={store.opportunities}
           applications={store.applications}
           onNavigate={onNavigate}
@@ -64,7 +83,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute === '/student/opportunities' || normalizedRoute === '/student/opportunities/') {
       return (
         <StudentOpportunitiesView
-          student={store.student}
+          student={currentStudent}
           opportunities={store.opportunities}
           applications={store.applications}
           onNavigate={onNavigate}
@@ -79,7 +98,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
       return (
         <StudentApplicationDetailView
           applicationId={appId}
-          student={store.student}
+          student={currentStudent}
           applications={store.applications}
           onNavigate={onNavigate}
         />
@@ -90,7 +109,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute === '/student/applications' || normalizedRoute === '/student/applications/') {
       return (
         <StudentApplicationsView
-          student={store.student}
+          student={currentStudent}
           applications={store.applications}
           onNavigate={onNavigate}
         />
@@ -101,7 +120,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute.startsWith('/student/drives')) {
       return (
         <StudentDrivesView
-          student={store.student}
+          student={currentStudent}
           placementDrives={store.placementDrives}
           opportunities={store.opportunities}
           applications={store.applications}
@@ -115,7 +134,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute.startsWith('/student/offers')) {
       return (
         <StudentOffersView
-          student={store.student}
+          student={currentStudent}
           offers={store.offers}
           onAcceptOffer={store.acceptOffer}
           onDeclineOffer={store.declineOffer}
@@ -127,7 +146,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute.startsWith('/student/preparation')) {
       return (
         <StudentPreparationView
-          student={store.student}
+          student={currentStudent}
           onNavigate={onNavigate}
         />
       );
@@ -137,7 +156,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute.startsWith('/student/skills')) {
       return (
         <StudentSkillsView
-          student={store.student}
+          student={currentStudent}
           onNavigate={onNavigate}
         />
       );
@@ -147,7 +166,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute.startsWith('/student/calendar')) {
       return (
         <StudentCalendarView
-          student={store.student}
+          student={currentStudent}
           calendarEvents={store.calendarEvents}
           onNavigate={onNavigate}
         />
@@ -165,7 +184,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute.startsWith('/student/documents')) {
       return (
         <StudentDocumentsView
-          student={store.student}
+          student={currentStudent}
           documents={store.documents}
           onUploadResume={store.uploadResume}
         />
@@ -176,7 +195,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute.startsWith('/student/profile')) {
       return (
         <StudentProfileView
-          student={store.student}
+          student={currentStudent}
           onNavigate={onNavigate}
         />
       );
@@ -186,7 +205,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute.startsWith('/student/notifications')) {
       return (
         <StudentNotificationsView
-          student={store.student}
+          student={currentStudent}
           notifications={store.notifications}
           onMarkRead={store.markNotificationRead}
           onMarkAllRead={store.markAllNotificationsRead}
@@ -199,9 +218,27 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     if (normalizedRoute.startsWith('/student/support') || normalizedRoute.startsWith('/student/help')) {
       return (
         <StudentHelpSupportView
-          student={store.student}
+          student={currentStudent}
           tickets={store.tickets}
           onCreateTicket={store.createSupportTicket}
+        />
+      );
+    }
+
+    // 15. Settings Center
+    if (normalizedRoute.startsWith('/student/settings')) {
+      const cleanPath = normalizedRoute.split('?')[0].split('#')[0];
+      const subTab = cleanPath.replace('/student/settings', '').replace(/^\//, '') as StudentSettingsTab;
+      const validTabs: StudentSettingsTab[] = ['account', 'profile', 'security', 'notifications', 'career', 'privacy', 'appearance', 'sessions', 'connections', 'danger', 'support'];
+      const activeTab = validTabs.includes(subTab) ? subTab : 'account';
+
+      return (
+        <StudentSettingsView
+          student={currentStudent}
+          currentTab={activeTab}
+          onNavigateTab={(tab) => onNavigate(`/student/settings/${tab}`)}
+          onUpdateStudentProfile={store.updateStudentProfile}
+          onNavigate={onNavigate}
         />
       );
     }
@@ -209,7 +246,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
     // Default / Fallback: Student Dashboard
     return (
       <StudentDashboardView
-        student={store.student}
+        student={currentStudent}
         opportunities={store.opportunities}
         applications={store.applications}
         announcements={store.announcements}
@@ -238,12 +275,13 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
         
         {/* Top Sticky Header */}
         <StudentHeader
-          student={store.student}
+          student={currentStudent}
           currentSubroute={normalizedRoute}
           unreadCount={store.unreadNotificationsCount}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           onNavigate={onNavigate}
           onBackToPublic={onBackToPublic}
+          onOpenSearch={() => setIsSearchModalOpen(true)}
         />
 
         {/* Scrollable View Body */}
@@ -270,12 +308,30 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
           isOpen={true}
           onClose={() => setApplyModalOpp(null)}
           opportunity={applyModalOpp}
-          student={store.student}
+          student={currentStudent}
           activeResume={activeResume}
           onConfirmApply={(oppId) => store.applyToOpportunity(oppId)}
           onViewApplication={(appId) => onNavigate(`/student/applications/${appId}`)}
         />
       )}
+
+      {/* Global Spotlight Search Modal (⌘K) */}
+      <GlobalSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onNavigate={(route) => {
+          setIsSearchModalOpen(false);
+          onNavigate(route);
+        }}
+        data={{
+          opportunities: store.opportunities,
+          applications: store.applications,
+          drives: store.placementDrives,
+          tracks: OFFICIAL_PREPARATION_TRACKS,
+          documents: store.documents,
+          events: store.calendarEvents
+        }}
+      />
 
     </div>
   );

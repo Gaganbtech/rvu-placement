@@ -24,8 +24,8 @@ import type {
 export const DEMO_STUDENT: Student = {
   id: 'RVU2023CSE042',
   universityRegisterNumber: '2023BCSE042',
-  name: 'Demo Student',
-  email: 'demo.student@rvu.edu.in',
+  name: 'Gagana A',
+  email: 'gagana.btech23@rvu.edu.in',
   phone: '+91 98860 12345',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
   isDemo: true,

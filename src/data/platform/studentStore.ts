@@ -73,6 +73,19 @@ class PlatformStore {
   private recruiterMessages: RecruiterMessage[] = [...INITIAL_RECRUITER_MESSAGES];
   private recruiterNotifications: RecruiterNotification[] = [...INITIAL_RECRUITER_NOTIFICATIONS];
 
+  // Student Career Operating System State
+  private savedOpportunityIds: string[] = ['OPP-001'];
+  private completedPreparationTaskIds: string[] = [
+    'task-apt-1', 'task-apt-2', 'task-apt-3',
+    'task-tech-1', 'task-tech-2',
+    'task-code-1',
+    'task-comm-1', 'task-comm-2',
+    'task-int-1',
+    'task-res-1', 'task-res-2', 'task-res-3',
+    'task-gd-1',
+    'task-dom-1'
+  ];
+
   private listeners: Set<() => void> = new Set();
 
   public subscribe(listener: () => void) {
@@ -124,9 +137,12 @@ class PlatformStore {
     return this.students;
   }
 
-  public getStudent(): Student {
-    // Backwards compatibility for Student Portal
-    return this.students.find(s => s.id === 'RVU2023CSE042') || this.students[0];
+  public getStudent(email?: string): Student {
+    if (email) {
+      const match = this.students.find(s => s.email.toLowerCase() === email.toLowerCase());
+      if (match) return match;
+    }
+    return this.students.find(s => s.email.toLowerCase() === 'gagana.btech23@rvu.edu.in') || this.students.find(s => s.id === 'RVU2023CSE042') || this.students[0];
   }
 
   public getStudentById(id: string): Student | undefined {
@@ -897,6 +913,93 @@ class PlatformStore {
     return newDoc;
   }
 
+  // --- STUDENT CAREER OS EXTENSIONS ---
+  public getSavedOpportunityIds(): string[] {
+    return this.savedOpportunityIds;
+  }
+
+  public isOpportunitySaved(oppId: string): boolean {
+    return this.savedOpportunityIds.includes(oppId);
+  }
+
+  public toggleSaveOpportunity(oppId: string): void {
+    if (this.savedOpportunityIds.includes(oppId)) {
+      this.savedOpportunityIds = this.savedOpportunityIds.filter(id => id !== oppId);
+      this.logAction('Opportunity Unsaved', 'Opportunity', oppId, `Student removed opportunity ${oppId} from saved list`);
+    } else {
+      this.savedOpportunityIds = [...this.savedOpportunityIds, oppId];
+      this.logAction('Opportunity Saved', 'Opportunity', oppId, `Student saved opportunity ${oppId}`);
+    }
+    this.notify();
+  }
+
+  public getCompletedPreparationTaskIds(): string[] {
+    return this.completedPreparationTaskIds;
+  }
+
+  public togglePreparationTask(taskId: string): void {
+    if (this.completedPreparationTaskIds.includes(taskId)) {
+      this.completedPreparationTaskIds = this.completedPreparationTaskIds.filter(id => id !== taskId);
+    } else {
+      this.completedPreparationTaskIds = [...this.completedPreparationTaskIds, taskId];
+    }
+    this.notify();
+  }
+
+  public registerForPlacementDrive(driveId: string): void {
+    const drive = this.placementDrives.find(d => d.id === driveId);
+    if (!drive) return;
+    const student = this.getStudent();
+    const existingRoster = drive.attendanceRoster || [];
+    if (!existingRoster.some(r => r.studentId === student.id)) {
+      drive.attendanceRoster = [
+        ...existingRoster,
+        {
+          studentId: student.id,
+          studentName: student.name,
+          registeredAt: new Date().toLocaleDateString('en-GB'),
+          attendanceStatus: 'REGISTERED'
+        }
+      ];
+      this.logAction('Drive Registration', 'PlacementDrive', driveId, `Student ${student.name} registered for ${drive.title}`);
+      this.notify();
+    }
+  }
+
+  public deleteStudentDocument(docId: string): void {
+    this.documents = this.documents.filter(d => d.id !== docId);
+    this.logAction('Document Deleted', 'StudentDocument', docId, `Student deleted document ${docId}`);
+    this.notify();
+  }
+
+  public replaceStudentDocument(docId: string, fileName: string, fileSize: string): void {
+    this.documents = this.documents.map(d => {
+      if (d.id === docId) {
+        return {
+          ...d,
+          fileName,
+          fileSize,
+          uploadedDate: new Date().toLocaleDateString('en-GB')
+        };
+      }
+      return d;
+    });
+    this.logAction('Document Replaced', 'StudentDocument', docId, `Student updated document ${docId} with ${fileName}`);
+    this.notify();
+  }
+
+  public updateStudentProfile(updates: Partial<Student>): void {
+    const activeStudentId = 'RVU2023CSE042';
+    this.students = this.students.map(s => {
+      if (s.id === activeStudentId) {
+        return { ...s, ...updates };
+      }
+      return s;
+    });
+    this.logAction('Profile Updated', 'Student', activeStudentId, 'Student updated personal profile details');
+    this.notify();
+  }
+
   public acceptOffer(offerId: string) {
     const student = this.getStudent();
     this.offers = this.offers.map(o => o.id === offerId ? { ...o, status: 'OFFER_ACCEPTED' } : o);
@@ -1437,6 +1540,7 @@ export function usePlatformStore() {
     // Students
     students: platformStore.getStudents(),
     student: platformStore.getStudent(),
+    getStudent: (email?: string) => platformStore.getStudent(email),
     getStudentById: (id: string) => platformStore.getStudentById(id),
     addStudent: (s: Student) => platformStore.addStudent(s),
     updateStudent: (id: string, u: Partial<Student>) => platformStore.updateStudent(id, u),
@@ -1519,7 +1623,18 @@ export function usePlatformStore() {
     // Documents & Calendar
     documents: platformStore.getDocuments(),
     uploadResume: (fName: string, fSize: string) => platformStore.uploadResume(fName, fSize),
+    deleteStudentDocument: (id: string) => platformStore.deleteStudentDocument(id),
+    replaceStudentDocument: (id: string, name: string, size: string) => platformStore.replaceStudentDocument(id, name, size),
     calendarEvents: platformStore.getCalendarEvents(),
+
+    // Student Career Operating System Additions
+    savedOpportunityIds: platformStore.getSavedOpportunityIds(),
+    isOpportunitySaved: (id: string) => platformStore.isOpportunitySaved(id),
+    toggleSaveOpportunity: (id: string) => platformStore.toggleSaveOpportunity(id),
+    completedPreparationTaskIds: platformStore.getCompletedPreparationTaskIds(),
+    togglePreparationTask: (id: string) => platformStore.togglePreparationTask(id),
+    registerForPlacementDrive: (id: string) => platformStore.registerForPlacementDrive(id),
+    updateStudentProfile: (u: Partial<Student>) => platformStore.updateStudentProfile(u),
 
     // Audit & Policies
     auditLogs: platformStore.getAuditLogs(),

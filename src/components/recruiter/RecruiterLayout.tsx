@@ -185,8 +185,9 @@ export const RecruiterLayout: React.FC<RecruiterLayoutProps> = ({
     }
 
     // 24. Settings
-    if (pathWithoutQuery === '/recruiter/settings' || pathWithoutQuery === '/recruiter/settings/') {
-      return <RecruiterSettingsView store={store} />;
+    if (pathWithoutQuery.startsWith('/recruiter/settings')) {
+      const sub = pathWithoutQuery.replace('/recruiter/settings', '').replace(/^\//, '');
+      return <RecruiterSettingsView store={store} initialTab={sub || undefined} onNavigate={onNavigate} />;
     }
 
     // Default: Recruiter Dashboard

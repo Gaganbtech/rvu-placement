@@ -1,14 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
-  CheckCircle2, 
   Briefcase, 
   FileText, 
-  ArrowRight, 
-  Clock, 
-  ChevronRight
+  ChevronRight,
+  Bookmark,
+  BookmarkCheck,
+  Calendar,
+  Sparkles,
+  AlertCircle
 } from 'lucide-react';
-import type { Student, Opportunity, Application, PlacementAnnouncement, PlacementCalendarEvent } from '../../../data/platform/types';
-import { Button } from '../../ui/Button';
+import type { 
+  Student, 
+  Opportunity, 
+  Application, 
+  PlacementAnnouncement, 
+  PlacementCalendarEvent,
+  PlacementDrive,
+  StudentDocument,
+  Offer
+} from '../../../data/platform/types';
+import { StudentIntelligenceService } from '../../../services/studentIntelligenceService';
+import { CareerReadinessHero } from '../components/CareerReadinessHero';
+import { TodaysPriorities } from '../components/TodaysPriorities';
+import { CareerJourneyFlow } from '../components/CareerJourneyFlow';
+import { StudentAICareerAssistant } from '../components/StudentAICareerAssistant';
 
 interface StudentDashboardViewProps {
   student: Student;
@@ -16,6 +31,12 @@ interface StudentDashboardViewProps {
   applications: Application[];
   announcements: PlacementAnnouncement[];
   calendarEvents: PlacementCalendarEvent[];
+  placementDrives?: PlacementDrive[];
+  documents?: StudentDocument[];
+  offers?: Offer[];
+  savedOpportunityIds?: string[];
+  completedTaskIds?: string[];
+  onToggleSaveOpportunity?: (oppId: string) => void;
   onNavigate: (route: string) => void;
   onOpenApplyModal: (opp: Opportunity) => void;
 }
@@ -26,542 +47,594 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
   applications,
   announcements,
   calendarEvents,
+  placementDrives = [],
+  documents = [],
+  offers = [],
+  savedOpportunityIds = [],
+  completedTaskIds = [],
+  onToggleSaveOpportunity,
   onNavigate,
   onOpenApplyModal
 }) => {
-  // Matched opportunities (top approved & published)
-  const matchedOpps = opportunities
-    .filter(o => o.isPublished && o.approvedByAdmin)
-    .sort((a, b) => (b.matchScoreForDemoStudent || 0) - (a.matchScoreForDemoStudent || 0))
-    .slice(0, 3);
+  const [calendarFilter, setCalendarFilter] = useState<'TODAY' | 'THIS_WEEK' | 'THIS_MONTH'>('THIS_WEEK');
 
-  // Active in-progress applications
-  const activeApplications = applications.filter(
-    a => !['OFFER_ACCEPTED', 'OFFER_DECLINED', 'REJECTED', 'WITHDRAWN'].includes(a.stage)
+  // Compute Career Readiness
+  const readiness = StudentIntelligenceService.calculateCareerReadiness(
+    student,
+    documents,
+    completedTaskIds
   );
 
+  // Compute Today's Priorities
+  const priorities = StudentIntelligenceService.getTodaysPriorities(
+    student,
+    opportunities,
+    applications,
+    placementDrives,
+    documents,
+    calendarEvents
+  );
+
+  // Filter approved & published opportunities
+  const publishedOpps = opportunities
+    .filter(o => o.isPublished && o.approvedByAdmin)
+    .slice(0, 4);
+
+  // Application Pipeline stats
+  const totalApplied = applications.length;
+  const inReviewCount = applications.filter(a => ['APPLIED', 'UNDER_REVIEW', 'SHORTLISTED'].includes(a.stage)).length;
+  const assessmentCount = applications.filter(a => a.stage === 'ASSESSMENT').length;
+  const interviewCount = applications.filter(a => a.stage === 'INTERVIEW').length;
+  const offerCount = offers.length;
+
+  // Recent applications (top 3)
+  const recentApplications = applications.slice(0, 3);
+
+  // Filter calendar events
+  const filteredEvents = calendarEvents.filter(e => {
+    if (calendarFilter === 'TODAY') {
+      return e.date.toLowerCase().includes('today') || e.date.includes('16 Sep');
+    }
+    return true;
+  }).slice(0, 3);
+
+  const getApplicationForOpp = (oppId: string) => {
+    return applications.find(a => a.opportunityId === oppId);
+  };
+
+  const activeResume = documents.find(d => d.type === 'RESUME' && d.isActiveForApplications);
+
   return (
-    <div className="space-y-8 animate-fadeIn pb-12">
+    <div className="space-y-8 animate-fadeIn pb-16">
       
-      {/* 1. HERO WELCOME BANNER */}
+      {/* ==================================================== */}
+      {/* 4. TOP HEADER: GREETING & COMMAND CENTER BANNER */}
+      {/* ==================================================== */}
       <div className="relative rounded-2xl bg-gradient-to-r from-[#142332] via-[#101A22] to-[#162738] border border-gold-border/60 p-6 sm:p-8 overflow-hidden shadow-card-elevated">
-        
-        {/* Subtle decorative background pattern */}
         <div className="absolute right-0 top-0 w-96 h-full opacity-10 pointer-events-none bg-[radial-gradient(#CCAA68_1px,transparent_1px)] [background-size:16px_16px]" />
         <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-gold/10 blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono tracking-widest text-gold uppercase font-bold px-2 py-0.5 rounded bg-gold/15 border border-gold/30">
-                RVU CAREER HUB
+              <span className="text-[10px] font-mono tracking-widest text-gold uppercase font-bold px-2.5 py-1 rounded-full bg-gold-faint border border-gold/30">
+                RVU CAREER OPERATING SYSTEM
               </span>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                DEMO STUDENT
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Live Session
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white font-display">
-              Welcome back, <span className="text-gold">{student.name}</span>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white font-display">
+              Good morning, <span className="text-gold">{student.name || 'Scholar'}</span>
             </h1>
 
             <p className="text-sm sm:text-base text-rvu-muted max-w-xl leading-relaxed">
-              Your career journey starts here. Access verified campus drives, track your recruiter pipeline, and prepare with university resources.
+              Here’s what matters for your career journey today. Review your readiness score, track recruiter pipelines, and prepare with institutional focus.
             </p>
 
-            {/* Student Verified Identity Pills */}
             <div className="pt-2 flex flex-wrap items-center gap-3 text-xs font-mono text-rvu-subtle">
               <span className="text-white font-semibold">{student.programme}</span>
               <span>•</span>
               <span className="text-rvu-muted">{student.school}</span>
               <span>•</span>
-              <span className="text-gold font-semibold">Graduating {student.graduationYear}</span>
+              <span className="text-gold font-semibold">Class of {student.graduationYear}</span>
+              <span>•</span>
+              <span className="text-emerald-400">CGPA {student.cgpa.toFixed(2)}</span>
             </div>
           </div>
 
-          {/* Quick CTA cluster */}
           <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
-            <Button
-              variant="primary"
-              size="sm"
+            <button
               onClick={() => onNavigate('/student/opportunities')}
-              icon={<Briefcase className="w-4 h-4" />}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gold text-navy-dark font-bold text-xs shadow-gold-sm hover:bg-gold-highlight transition-all"
             >
-              Explore Opportunities
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onNavigate('/student/applications')}
-              icon={<FileText className="w-4 h-4" />}
-            >
-              View Applications ({applications.length})
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. PLACEMENT ELIGIBILITY & CAREER READINESS ROW */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Placement Eligibility Card (CRITICAL REQUIREMENT) */}
-        <div className="lg:col-span-2 rounded-2xl bg-navy-card border border-emerald-500/40 p-6 shadow-card space-y-5 relative overflow-hidden">
-          
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
-                  Institutional Authority Gate
-                </span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-rvu-subtle">
-                  CAR Verified
-                </span>
-              </div>
-              <h2 className="text-xl font-bold text-white font-display flex items-center gap-2">
-                <span>PLACEMENT ELIGIBILITY</span>
-              </h2>
-            </div>
-
-            {/* Official Status Stamp */}
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono text-xs font-bold shadow-sm">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>{student.eligibilityStatus === 'ELIGIBLE' ? '✓ Eligible for Placement' : 'Under Review'}</span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-[#0E1720] border border-emerald-500/20 text-xs space-y-2">
-            <div className="flex items-center justify-between text-rvu-muted">
-              <span className="font-mono">Eligible for:</span>
-              <strong className="text-gold font-mono">{student.eligibilityDriveScope}</strong>
-            </div>
-            <p className="text-rvu-subtle leading-relaxed text-[11px]">
-              "{student.eligibilityRemarks}"
-            </p>
-          </div>
-
-          {/* Academic Criteria Checklist */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 rounded-xl bg-navy-surface border border-white/5 text-xs space-y-1">
-              <span className="text-[10px] text-rvu-subtle font-mono block">CGPA (Min 7.0)</span>
-              <div className="text-base font-bold text-emerald-400 font-mono flex items-center gap-1">
-                <span>{student.cgpa}</span>
-                <CheckCircle2 className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-[9px] text-rvu-subtle">Target achieved</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-navy-surface border border-white/5 text-xs space-y-1">
-              <span className="text-[10px] text-rvu-subtle font-mono block">Active Backlogs</span>
-              <div className="text-base font-bold text-emerald-400 font-mono flex items-center gap-1">
-                <span>{student.activeBacklogs}</span>
-                <CheckCircle2 className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-[9px] text-rvu-subtle">Zero pending backlog</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-navy-surface border border-white/5 text-xs space-y-1">
-              <span className="text-[10px] text-rvu-subtle font-mono block">Attendance (Min 75%)</span>
-              <div className="text-base font-bold text-emerald-400 font-mono flex items-center gap-1">
-                <span>{student.attendancePercentage}%</span>
-                <CheckCircle2 className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-[9px] text-rvu-subtle">Institutional clear</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-navy-surface border border-white/5 text-xs space-y-1">
-              <span className="text-[10px] text-rvu-subtle font-mono block">Programme Clearance</span>
-              <div className="text-xs font-bold text-white font-mono flex items-center gap-1">
-                <span>B.Tech CSE</span>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              </div>
-              <span className="text-[9px] text-rvu-subtle">2027 Cohort verified</span>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-rvu-subtle gap-2">
-            <span>Verified by: <strong className="text-white">{student.verifiedBy}</strong> on {student.verifiedDate}</span>
-            <span className="text-amber-400/90 font-mono italic">
-              * Note: Eligibility is set exclusively by CAR. Students cannot self-declare.
-            </span>
-          </div>
-        </div>
-
-        {/* Career Readiness Score Card */}
-        <div className="rounded-2xl bg-navy-card border border-gold-border/60 p-6 shadow-card space-y-5 flex flex-col justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-gold font-bold">
-                Career Readiness
-              </span>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-gold/15 text-gold border border-gold/30">
-                PREPARATION INDEX
-              </span>
-            </div>
-            <h2 className="text-xl font-bold text-white font-display">
-              Readiness Score
-            </h2>
-          </div>
-
-          {/* Big Score Display */}
-          <div className="flex items-center gap-4 p-4 rounded-xl bg-[#0E1720] border border-gold-border/30">
-            <div className="w-16 h-16 rounded-2xl bg-gold/15 border-2 border-gold flex items-center justify-center text-gold font-mono font-bold text-2xl shadow-gold-glow">
-              {student.readinessScore}
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-xs font-bold text-white">Career Preparation Benchmark</div>
-              <div className="text-[11px] text-rvu-muted">
-                Cohort percentile: <strong className="text-gold">Top 15%</strong>
-              </div>
-              <div className="text-[10px] text-emerald-400 font-mono">
-                +6 pts from profile completion
-              </div>
-            </div>
-          </div>
-
-          {/* Breakdown bars */}
-          <div className="space-y-2.5 text-xs font-mono">
-            <div>
-              <div className="flex justify-between text-[11px] text-rvu-muted mb-1">
-                <span>Profile & Credentials</span>
-                <span className="text-white">{student.readinessBreakdown.profile}%</span>
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-navy-surface overflow-hidden">
-                <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${student.readinessBreakdown.profile}%` }} />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-[11px] text-rvu-muted mb-1">
-                <span>ATS Resume Quality</span>
-                <span className="text-white">{student.readinessBreakdown.resume}%</span>
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-navy-surface overflow-hidden">
-                <div className="h-full bg-gold rounded-full" style={{ width: `${student.readinessBreakdown.resume}%` }} />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-[11px] text-rvu-muted mb-1">
-                <span>Technical Preparation</span>
-                <span className="text-white">{student.readinessBreakdown.technicalPrep}%</span>
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-navy-surface overflow-hidden">
-                <div className="h-full bg-sky-400 rounded-full" style={{ width: `${student.readinessBreakdown.technicalPrep}%` }} />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-[11px] text-rvu-muted mb-1">
-                <span>Mock Interview Drills</span>
-                <span className="text-white">{student.readinessBreakdown.interviewPrep}%</span>
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-navy-surface overflow-hidden">
-                <div className="h-full bg-amber-400 rounded-full" style={{ width: `${student.readinessBreakdown.interviewPrep}%` }} />
-              </div>
-            </div>
-          </div>
-
-          {/* Prompt Required Disclaimer */}
-          <div className="p-2.5 rounded-lg bg-[#0E1720] border border-white/5 text-[10px] text-rvu-subtle italic leading-tight">
-            * IMPORTANT: This is a career preparation indicator. It does NOT claim that it predicts placement probability.
-          </div>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onNavigate('/student/preparation')}
-            className="w-full justify-center"
-            icon={<ArrowRight className="w-3.5 h-3.5" />}
-          >
-            Enhance Readiness Score
-          </Button>
-        </div>
-
-      </div>
-
-      {/* 3. ACTIVE PIPELINE & ANNOUNCEMENTS ROW */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Active Application Pipeline */}
-        <div className="lg:col-span-2 rounded-2xl bg-navy-card border border-gold-border/60 p-6 shadow-card space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-gold font-bold">
-                Live Recruiter Stages
-              </span>
-              <h2 className="text-xl font-bold text-white font-display">
-                Active Applications Pipeline
-              </h2>
-            </div>
-
+              <Briefcase className="w-4 h-4" />
+              <span>Explore Opportunities</span>
+            </button>
             <button
               onClick={() => onNavigate('/student/applications')}
-              className="text-xs font-mono text-gold hover:text-white flex items-center gap-1 transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-navy-surface border border-gold/30 text-xs font-semibold text-rvu-text hover:text-gold hover:border-gold transition-all"
             >
-              <span>View All ({applications.length})</span>
+              <FileText className="w-4 h-4 text-gold" />
+              <span>My Applications ({applications.length})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Institutional Placement Announcement Ticker */}
+        {announcements && announcements.length > 0 && (
+          <div className="p-3.5 rounded-xl bg-gold/10 border border-gold/30 flex items-center justify-between gap-3 text-xs font-mono text-rvu-text">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <AlertCircle className="w-4 h-4 text-gold shrink-0" />
+              <span className="text-gold font-bold uppercase shrink-0">CAR Notice:</span>
+              <span className="text-white truncate">{announcements[0].title} — {announcements[0].content}</span>
+            </div>
+            <button
+              onClick={() => onNavigate('/student/notifications')}
+              className="text-gold text-[11px] hover:underline shrink-0 flex items-center gap-1 font-semibold"
+            >
+              <span>View All</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
+        )}
+      </div>
 
-          {activeApplications.length === 0 ? (
-            <div className="p-8 text-center rounded-xl bg-[#0E1720] border border-white/5 text-rvu-muted text-xs space-y-2">
-              <p>You have no active applications in progress.</p>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => onNavigate('/student/opportunities')}
+      {/* ==================================================== */}
+      {/* 4.1 CAREER READINESS HERO */}
+      {/* ==================================================== */}
+      <CareerReadinessHero
+        readiness={readiness}
+        onNavigate={onNavigate}
+      />
+
+      {/* ==================================================== */}
+      {/* 4.2 TODAY'S PRIORITIES */}
+      {/* ==================================================== */}
+      <TodaysPriorities
+        priorities={priorities}
+        onNavigate={onNavigate}
+      />
+
+      {/* ==================================================== */}
+      {/* 5. MY CAREER JOURNEY PROGRESSION */}
+      {/* ==================================================== */}
+      <CareerJourneyFlow
+        applications={applications}
+        offers={offers}
+        drives={placementDrives}
+        onNavigate={onNavigate}
+      />
+
+      {/* ==================================================== */}
+      {/* 4.3 OPPORTUNITY MATCHES (RECOMMENDED FOR YOU) */}
+      {/* ==================================================== */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-gold font-bold block">
+              ALIGNED POSITIONS
+            </span>
+            <h2 className="text-xl font-bold text-white font-display">
+              RECOMMENDED FOR YOU
+            </h2>
+          </div>
+
+          <button
+            onClick={() => onNavigate('/student/opportunities')}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold hover:underline"
+          >
+            <span>View All Opportunities ({opportunities.length})</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {publishedOpps.map((opp) => {
+            const match = StudentIntelligenceService.calculateOpportunityMatch(student, opp);
+            const app = getApplicationForOpp(opp.id);
+            const isSaved = savedOpportunityIds.includes(opp.id);
+
+            return (
+              <div
+                key={opp.id}
+                className="card-glass rounded-xl p-5 border border-gold-border/30 hover:border-gold/60 transition-all flex flex-col justify-between bg-navy-surface shadow-card group"
               >
-                Browse Campus Opportunities
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {activeApplications.map((app) => (
-                <div 
-                  key={app.id}
-                  className="p-4 rounded-xl bg-[#0E1720] border border-gold-border/40 hover:border-gold/60 transition-all space-y-3"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-white/5 border border-gold-border/40 flex items-center justify-center text-gold font-bold text-sm">
-                        {app.companyName.charAt(0)}
+                      <div className="w-10 h-10 rounded-xl bg-gold/15 border border-gold/40 flex items-center justify-center text-gold font-bold text-base shrink-0 group-hover:scale-105 transition-transform">
+                        {opp.companyName.charAt(0)}
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-white leading-tight">
-                          {app.role}
+                        <span className="text-xs text-rvu-muted font-medium block">
+                          {opp.companyName}
+                        </span>
+                        <h3 className="text-sm font-bold text-white font-display group-hover:text-gold transition-colors">
+                          {opp.role}
                         </h3>
-                        <div className="text-xs text-rvu-muted">
-                          {app.companyName} • <span className="font-mono text-gold-light">{app.compensation}</span>
-                        </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gold/15 text-gold border border-gold/30 uppercase font-bold">
-                        Stage: {app.stage}
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
+                        {match.score}% Match
                       </span>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => onNavigate(`/student/applications/${app.id}`)}
-                        className="text-xs py-1"
-                      >
-                        Track
-                      </Button>
+                      {onToggleSaveOpportunity && (
+                        <button
+                          onClick={() => onToggleSaveOpportunity(opp.id)}
+                          className="p-1.5 rounded-lg text-rvu-subtle hover:text-gold hover:bg-white/5 transition-colors"
+                          title={isSaved ? 'Unsave' : 'Save opportunity'}
+                        >
+                          {isSaved ? (
+                            <BookmarkCheck className="w-4 h-4 text-gold fill-gold/20" />
+                          ) : (
+                            <Bookmark className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  {/* Next Action Box */}
-                  {app.nextAction && (
-                    <div className="p-3 rounded-lg bg-navy-card/80 border border-gold-border/30 flex items-start gap-2.5 text-xs">
-                      <Clock className="w-4 h-4 text-gold shrink-0 mt-0.5" />
-                      <div className="flex-1 space-y-0.5">
-                        <div className="flex items-center justify-between">
-                          <strong className="text-white text-[11px] font-mono uppercase">
-                            Next Action: {app.nextAction.title}
-                          </strong>
-                          <span className="text-[10px] font-mono text-amber-300">
-                            Deadline: {app.nextAction.deadline}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-rvu-muted leading-relaxed">
-                          {app.nextAction.description}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                  <div className="p-2.5 rounded-lg bg-navy-dark/90 border border-white/5 text-[11px] text-rvu-subtle font-mono mb-3">
+                    {match.explanation}
+                  </div>
 
-        {/* Placement Office Announcements */}
-        <div className="rounded-2xl bg-navy-card border border-gold-border/60 p-6 shadow-card space-y-4 flex flex-col justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-gold font-bold">
-                Official Notices
-              </span>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                CAR DESK
-              </span>
-            </div>
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {opp.requiredSkills.slice(0, 3).map(skill => (
+                      <span
+                        key={skill}
+                        className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-rvu-muted border border-white/10"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-white/5 flex items-center justify-between gap-3">
+                  <span className="text-xs font-mono font-bold text-gold">
+                    {opp.ctcLpa}
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onNavigate(`/student/opportunities/${opp.id}`)}
+                      className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-rvu-text hover:text-gold hover:border-gold transition-all"
+                    >
+                      View Details
+                    </button>
+                    {app ? (
+                      <button
+                        onClick={() => onNavigate(`/student/applications/${app.id}`)}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold"
+                      >
+                        Applied ({app.stage})
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onOpenApplyModal(opp)}
+                        className="px-3 py-1.5 rounded-lg bg-gold text-navy-dark font-bold text-xs shadow-gold-sm hover:bg-gold-highlight transition-all"
+                      >
+                        Apply
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ==================================================== */}
+      {/* 6. APPLICATION COMMAND CENTER */}
+      {/* ==================================================== */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-gold font-bold block">
+              RECRUITER PIPELINE
+            </span>
             <h2 className="text-xl font-bold text-white font-display">
-              Placement Announcements
+              APPLICATION COMMAND CENTER
             </h2>
           </div>
 
-          <div className="space-y-3 flex-1">
-            {announcements.slice(0, 3).map((ann) => (
-              <div 
-                key={ann.id}
-                className="p-3.5 rounded-xl bg-[#0E1720] border border-white/5 space-y-1.5 hover:border-gold-border/40 transition-colors"
+          <button
+            onClick={() => onNavigate('/student/applications')}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold hover:underline"
+          >
+            <span>View All Applications</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Funnel Counters Strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="p-3.5 rounded-xl bg-navy-surface border border-gold-border/20 text-center">
+            <span className="text-[10px] font-mono uppercase text-rvu-subtle block">Applied</span>
+            <span className="text-2xl font-bold font-mono text-white">{totalApplied}</span>
+          </div>
+          <div className="p-3.5 rounded-xl bg-navy-surface border border-gold-border/20 text-center">
+            <span className="text-[10px] font-mono uppercase text-rvu-subtle block">Screening</span>
+            <span className="text-2xl font-bold font-mono text-sky-400">{inReviewCount}</span>
+          </div>
+          <div className="p-3.5 rounded-xl bg-navy-surface border border-gold-border/20 text-center">
+            <span className="text-[10px] font-mono uppercase text-rvu-subtle block">Assessment</span>
+            <span className="text-2xl font-bold font-mono text-amber-400">{assessmentCount}</span>
+          </div>
+          <div className="p-3.5 rounded-xl bg-navy-surface border border-gold-border/20 text-center">
+            <span className="text-[10px] font-mono uppercase text-rvu-subtle block">Interview</span>
+            <span className="text-2xl font-bold font-mono text-purple-400">{interviewCount}</span>
+          </div>
+          <div className="p-3.5 rounded-xl bg-navy-surface border border-gold-border/20 text-center col-span-2 sm:col-span-1">
+            <span className="text-[10px] font-mono uppercase text-rvu-subtle block">Offers</span>
+            <span className="text-2xl font-bold font-mono text-emerald-400">{offerCount}</span>
+          </div>
+        </div>
+
+        {/* Recent Applications Card */}
+        {recentApplications.length > 0 && (
+          <div className="card-glass rounded-xl p-4 border border-gold-border/30 bg-navy-surface space-y-2.5">
+            {recentApplications.map(app => (
+              <div
+                key={app.id}
+                onClick={() => onNavigate(`/student/applications/${app.id}`)}
+                className="p-3 rounded-lg bg-navy-dark hover:bg-white/5 border border-white/5 flex items-center justify-between cursor-pointer transition-all"
               >
-                <div className="flex items-center justify-between text-[10px] font-mono">
-                  <span className={`px-1.5 py-0.2 rounded font-bold uppercase ${
-                    ann.priority === 'URGENT' 
-                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' 
-                      : 'bg-gold/15 text-gold border border-gold/30'
-                  }`}>
-                    {ann.category}
-                  </span>
-                  <span className="text-rvu-subtle">{ann.publishedDate}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gold/15 border border-gold/30 flex items-center justify-center text-gold font-bold text-xs">
+                    {app.companyName.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">
+                      {app.role}
+                    </h4>
+                    <p className="text-[11px] text-rvu-muted">
+                      {app.companyName} • Applied {app.submittedAt}
+                    </p>
+                  </div>
                 </div>
-                <h4 className="text-xs font-bold text-white leading-snug">
-                  {ann.title}
-                </h4>
-                <p className="text-[11px] text-rvu-muted line-clamp-2 leading-relaxed">
-                  {ann.content}
-                </p>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-gold border border-gold/20">
+                    {app.stage}
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 text-rvu-subtle" />
+                </div>
               </div>
             ))}
           </div>
+        )}
+      </div>
 
-          {calendarEvents.length > 0 && (
-            <div className="p-3 rounded-xl bg-[#0E1720] border border-gold-border/40 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-gold shrink-0" />
-                <div className="leading-tight">
-                  <span className="text-[9px] text-rvu-subtle font-mono uppercase block">Next Calendar Milestone</span>
-                  <span className="text-white font-medium text-[11px] truncate max-w-[170px] block">{calendarEvents[0].title}</span>
-                </div>
-              </div>
+      {/* ==================================================== */}
+      {/* 7. UPCOMING EVENTS / CAREER CALENDAR */}
+      {/* ==================================================== */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-gold font-bold block">
+              SCHEDULE & DEADLINES
+            </span>
+            <h2 className="text-xl font-bold text-white font-display">
+              UPCOMING CAREER EVENTS
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center p-0.5 rounded-lg bg-navy-dark border border-white/10 text-[10px] font-mono">
               <button
-                onClick={() => onNavigate('/student/calendar')}
-                className="text-gold text-[10px] font-mono hover:underline shrink-0"
+                onClick={() => setCalendarFilter('TODAY')}
+                className={`px-2 py-1 rounded ${calendarFilter === 'TODAY' ? 'bg-gold text-navy-dark font-bold' : 'text-rvu-muted'}`}
               >
-                {calendarEvents[0].date} &rarr;
+                Today
+              </button>
+              <button
+                onClick={() => setCalendarFilter('THIS_WEEK')}
+                className={`px-2 py-1 rounded ${calendarFilter === 'THIS_WEEK' ? 'bg-gold text-navy-dark font-bold' : 'text-rvu-muted'}`}
+              >
+                This Week
+              </button>
+              <button
+                onClick={() => setCalendarFilter('THIS_MONTH')}
+                className={`px-2 py-1 rounded ${calendarFilter === 'THIS_MONTH' ? 'bg-gold text-navy-dark font-bold' : 'text-rvu-muted'}`}
+              >
+                This Month
               </button>
             </div>
-          )}
 
-          <div className="pt-2 border-t border-white/5 text-center">
             <button
-              onClick={() => onNavigate('/student/resources')}
-              className="text-xs font-mono text-gold hover:underline"
+              onClick={() => onNavigate('/student/calendar')}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-gold hover:underline"
             >
-              View Official Placement Guidelines & Policies &rarr;
+              <span>Open Calendar</span>
+              <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        {filteredEvents.length === 0 ? (
+          <div className="card-glass rounded-2xl p-6 border border-white/10 bg-navy-surface text-center">
+            <Calendar className="w-8 h-8 text-rvu-subtle mx-auto mb-2" />
+            <p className="text-xs text-rvu-muted">No upcoming career events for this filter.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {filteredEvents.map(event => (
+              <div
+                key={event.id}
+                onClick={() => onNavigate('/student/calendar')}
+                className="card-glass rounded-xl p-4 border border-gold-border/30 bg-navy-surface hover:border-gold/60 transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-gold border border-gold/20">
+                      {event.eventType}
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-300">
+                      {event.date}
+                    </span>
+                  </div>
+
+                  <h4 className="text-xs font-bold text-white mb-1">
+                    {event.title}
+                  </h4>
+                  <p className="text-[11px] text-rvu-muted line-clamp-2">
+                    {event.description}
+                  </p>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-rvu-subtle">
+                  <span>{event.startTime} - {event.endTime}</span>
+                  <span className="text-gold">{event.venueOrLink}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ==================================================== */}
+      {/* 11 & 12. SKILLS INTELLIGENCE & DOCUMENT VAULT ROW */}
+      {/* ==================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Skills Intelligence Preview (6 cols) */}
+        <div className="lg:col-span-6 card-glass rounded-2xl p-6 border border-gold-border/30 bg-navy-surface flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-gold font-bold">
+                  CAPABILITY RADAR
+                </span>
+                <h3 className="text-base font-bold text-white font-display">
+                  Skills Intelligence
+                </h3>
+              </div>
+              <button
+                onClick={() => onNavigate('/student/skills')}
+                className="text-xs font-semibold text-gold hover:underline inline-flex items-center gap-1"
+              >
+                <span>Full Matrix</span>
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              {student.skills.slice(0, 6).map(s => (
+                <div
+                  key={s.id}
+                  className="px-2.5 py-1.5 rounded-lg bg-navy-dark border border-gold-border/20 flex items-center gap-2 text-xs"
+                >
+                  <span className="text-white font-medium">{s.name}</span>
+                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-white/5 text-gold">
+                    {s.level}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-3 rounded-xl bg-navy-dark/90 border border-white/5 text-xs text-rvu-muted">
+              <div className="flex items-center gap-1.5 text-gold font-mono text-[11px] mb-1 font-bold">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>RECOMMENDED FOCUS AREA</span>
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                Strengthening distributed systems and dynamic programming algorithms will increase alignment with tier-1 recruiters.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-white/5 mt-4">
+            <button
+              onClick={() => onNavigate('/student/preparation')}
+              className="w-full py-2 rounded-xl bg-white/5 hover:bg-gold hover:text-navy-dark hover:border-gold border border-white/10 text-xs font-semibold text-white transition-all text-center"
+            >
+              Build Missing Skills in Prep Center
+            </button>
+          </div>
+        </div>
+
+        {/* Document Vault & Profile Health Preview (6 cols) */}
+        <div className="lg:col-span-6 card-glass rounded-2xl p-6 border border-gold-border/30 bg-navy-surface flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-gold font-bold">
+                  CREDENTIALS & COMPLIANCE
+                </span>
+                <h3 className="text-base font-bold text-white font-display">
+                  Primary Placement Resume
+                </h3>
+              </div>
+              <button
+                onClick={() => onNavigate('/student/documents')}
+                className="text-xs font-semibold text-gold hover:underline inline-flex items-center gap-1"
+              >
+                <span>Document Vault</span>
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            {activeResume ? (
+              <div className="p-4 rounded-xl bg-navy-dark border border-emerald-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <FileText className="w-5 h-5 text-emerald-400" />
+                    <div>
+                      <h4 className="text-xs font-bold text-white">{activeResume.fileName}</h4>
+                      <p className="text-[10px] font-mono text-rvu-subtle">
+                        {activeResume.fileSize} • Uploaded {activeResume.uploadedDate}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
+                    ACTIVE FOR DRIVES
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-rvu-muted pt-2 border-t border-white/5 font-mono">
+                  <span>ATS Format: Tier-1 Rubric Verified</span>
+                  <span className="text-emerald-400">✓ SIS Synced</span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-navy-dark border border-amber-500/30 text-center">
+                <AlertCircle className="w-6 h-6 text-amber-400 mx-auto mb-1.5" />
+                <p className="text-xs font-bold text-white">No active resume designated</p>
+                <p className="text-[11px] text-rvu-muted">Upload your primary placement resume to enable one-click applications.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-white/5 mt-4 flex items-center justify-between gap-3">
+            <span className="text-xs font-mono text-rvu-subtle">
+              {documents.length} verified document(s) in vault
+            </span>
+            <button
+              onClick={() => onNavigate('/student/documents')}
+              className="px-3 py-1.5 rounded-lg bg-gold text-navy-dark font-bold text-xs shadow-gold-sm hover:bg-gold-highlight transition-all"
+            >
+              Manage Documents
             </button>
           </div>
         </div>
 
       </div>
 
-      {/* 4. MATCHED OPPORTUNITIES PREVIEW */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-gold font-bold">
-                Curated Recommendations
-              </span>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-rvu-subtle">
-                Demo Match
-              </span>
-            </div>
-            <h2 className="text-xl font-bold text-white font-display">
-              Matched Opportunities
-            </h2>
-          </div>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onNavigate('/student/opportunities')}
-            icon={<ArrowRight className="w-3.5 h-3.5" />}
-          >
-            All Open Postings
-          </Button>
-        </div>
-
-        {/* Disclaimer for demo match score */}
-        <div className="p-3 rounded-xl bg-[#0F1822] border border-gold-border/30 text-xs text-rvu-subtle flex items-center justify-between">
-          <span>
-            Matched using your verified programme (<strong>{student.programme}</strong>), CGPA, and key skills.
-          </span>
-          <span className="font-mono text-[10px] text-gold hidden sm:inline">
-            * Note: UI/Demo match score; not an AI guarantee.
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {matchedOpps.map((opp) => (
-            <div
-              key={opp.id}
-              className="rounded-2xl bg-navy-card border border-gold-border/60 hover:border-gold transition-all p-5 flex flex-col justify-between space-y-4 group shadow-card"
-            >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="w-10 h-10 rounded-xl bg-gold/15 border border-gold/30 flex items-center justify-center text-gold font-bold">
-                    {opp.companyName.charAt(0)}
-                  </div>
-                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-gold/15 text-gold border border-gold/30">
-                    {opp.matchScoreForDemoStudent}% Match
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-gold transition-colors leading-snug">
-                    {opp.role}
-                  </h3>
-                  <div className="text-xs text-rvu-muted mt-0.5">
-                    {opp.companyName}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 text-xs text-rvu-subtle font-mono">
-                  <div className="flex items-center justify-between">
-                    <span>Package:</span>
-                    <strong className="text-emerald-400">{opp.ctcLpa}</strong>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Location:</span>
-                    <span className="text-white">{opp.location}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Deadline:</span>
-                    <span className="text-amber-300">{opp.applicationDeadline}</span>
-                  </div>
-                </div>
-
-                {/* Skills tags */}
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {opp.requiredSkills.slice(0, 3).map((s) => (
-                    <span key={s} className="text-[10px] px-2 py-0.5 rounded bg-[#0E1720] border border-white/10 text-rvu-muted">
-                      {s}
-                    </span>
-                  ))}
-                  {opp.requiredSkills.length > 3 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0E1720] text-rvu-subtle">
-                      +{opp.requiredSkills.length - 3}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-white/5 flex items-center gap-2">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => onOpenApplyModal(opp)}
-                  className="flex-1 justify-center text-xs py-1.5"
-                >
-                  Apply Now
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => onNavigate(`/student/opportunities/${opp.id}`)}
-                  className="text-xs py-1.5 px-2.5"
-                >
-                  View
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ==================================================== */}
+      {/* 15. RVU CAREER AI ASSISTANT PANEL */}
+      {/* ==================================================== */}
+      <StudentAICareerAssistant
+        student={student}
+        opportunities={opportunities}
+        applications={applications}
+        documents={documents}
+        onNavigate={onNavigate}
+      />
 
     </div>
   );

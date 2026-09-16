@@ -144,7 +144,8 @@ export const ManagementLayout: React.FC<ManagementLayoutProps> = ({
 
     // 19. Settings
     if (normalizedRoute.startsWith('/management/settings')) {
-      return <SettingsView store={store} onNavigate={onNavigate} />;
+      const sub = normalizedRoute.replace('/management/settings', '').replace(/^\//, '');
+      return <SettingsView store={store} initialTab={sub || undefined} onNavigate={onNavigate} />;
     }
 
     // Default: Command Dashboard

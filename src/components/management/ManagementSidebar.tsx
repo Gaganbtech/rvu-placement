@@ -21,10 +21,13 @@ import {
   ArrowLeft,
   GraduationCap,
   X,
-  Building
+  Building,
+  LogOut
 } from 'lucide-react';
 import { RVU_BRAND } from '../../data/rvu';
 import type { UserRole } from '../../data/platform/types';
+import { useAuth } from '../../context/AuthContext';
+import { SignOutConfirmDialog } from '../auth/SignOutConfirmDialog';
 
 interface ManagementSidebarProps {
   currentSubroute: string;
@@ -55,14 +58,16 @@ interface NavSection {
 export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
   currentSubroute,
   currentRole,
-  pendingOffersCount,
-  pendingApprovalsCount,
-  openTicketsCount,
+  pendingOffersCount = 0,
+  pendingApprovalsCount = 0,
+  openTicketsCount = 0,
   onNavigate,
   onBackToPublic,
   isOpenMobile = false,
   onCloseMobile
 }) => {
+  const [showSignOutModal, setShowSignOutModal] = React.useState(false);
+  const { user, logout } = useAuth();
   const navSections: NavSection[] = [
     {
       title: 'Overview',
@@ -325,6 +330,15 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
           <ArrowLeft className="w-3.5 h-3.5 text-gold" />
           <span>Back to Public Portal</span>
         </button>
+
+        {/* Sign Out */}
+        <button
+          onClick={() => setShowSignOutModal(true)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span>Sign Out</span>
+        </button>
       </div>
 
     </div>
@@ -349,6 +363,17 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
           </div>
         </div>
       )}
+      {/* Sign Out Confirmation Modal */}
+      <SignOutConfirmDialog
+        isOpen={showSignOutModal}
+        userEmail={user?.email || 'car.placement@rvu.edu.in'}
+        onCancel={() => setShowSignOutModal(false)}
+        onConfirm={() => {
+          setShowSignOutModal(false);
+          logout();
+          onBackToPublic();
+        }}
+      />
     </>
   );
 };

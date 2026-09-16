@@ -1,249 +1,353 @@
-import React, { useState, useMemo } from 'react';
-import { DEMO_OPPORTUNITIES, type Opportunity } from '../../data/opportunities';
-import { SCHOOL_FILTERS } from '../../data/placementStats';
-import { OpportunityCard } from './OpportunityCard';
-import { OpportunityModal } from './OpportunityModal';
-import { Search, Filter, RefreshCw, Briefcase } from 'lucide-react';
-import { Button } from '../ui/Button';
+import React, { useState } from 'react';
+import {
+  Search,
+  Briefcase,
+  Building,
+  GraduationCap,
+  Globe,
+  Users,
+  Layers,
+  ArrowRight,
+  ArrowUpRight,
+  Clock,
+  CheckCircle2,
+  Sparkles
+} from 'lucide-react';
+import { usePlatformStore } from '../../data/platform/studentStore';
+import { RVUPlacementEcosystemPanel } from './RVUPlacementEcosystemPanel';
+import type { Opportunity } from '../../data/platform/types';
 
-export const OpportunityExplorer: React.FC = () => {
+interface OpportunityExplorerProps {
+  onNavigatePortal?: (route: string) => void;
+  onOpenStudentLoginModal?: () => void;
+}
+
+const CATEGORY_CARDS = [
+  {
+    id: 'placement',
+    title: 'PLACEMENTS',
+    description: 'Explore placement opportunities and recruitment pathways.',
+    cta: 'Explore Placements',
+    route: '/opportunities?type=placement',
+    icon: Briefcase,
+    accent: 'text-gold bg-gold-faint border-gold/30'
+  },
+  {
+    id: 'internship',
+    title: 'INTERNSHIPS',
+    description: 'Explore internship pathways including summer and winter internships.',
+    cta: 'Explore Internships',
+    route: '/opportunities?type=internship',
+    icon: GraduationCap,
+    accent: 'text-blue-400 bg-blue-500/10 border-blue-500/30'
+  },
+  {
+    id: 'live-project',
+    title: 'LIVE PROJECTS',
+    description: 'Connect academic learning with real-world industry problems.',
+    cta: 'Explore Live Projects',
+    route: '/opportunities?type=live-project',
+    icon: Layers,
+    accent: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+  },
+  {
+    id: 'industry-mentoring',
+    title: 'INDUSTRY MENTORING',
+    description: 'Learn directly from experienced industry professionals.',
+    cta: 'Explore Mentoring',
+    route: '/opportunities?type=industry-mentoring',
+    icon: Users,
+    accent: 'text-purple-400 bg-purple-500/10 border-purple-500/30'
+  },
+  {
+    id: 'capstone',
+    title: 'CAPSTONE PROJECTS',
+    description: 'Apply academic knowledge through industry-relevant capstone work.',
+    cta: 'Explore Capstones',
+    route: '/opportunities?type=capstone',
+    icon: Sparkles,
+    accent: 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+  },
+  {
+    id: 'international-internship',
+    title: 'INTERNATIONAL INTERNSHIPS',
+    description: 'Explore global internship opportunities when published through the RVU ecosystem.',
+    cta: 'Explore International',
+    route: '/opportunities?type=international-internship',
+    icon: Globe,
+    accent: 'text-teal-400 bg-teal-500/10 border-teal-500/30'
+  }
+];
+
+export const OpportunityExplorer: React.FC<OpportunityExplorerProps> = ({
+  onNavigatePortal,
+  onOpenStudentLoginModal
+}) => {
+  const store = usePlatformStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<'All' | 'Job' | 'Internship' | 'Placement'>('All');
-  const [selectedSchool, setSelectedSchool] = useState('all');
-  const [selectedWorkMode, setSelectedWorkMode] = useState<'all' | 'On-site' | 'Hybrid' | 'Remote'>('all');
-  const [sortBy, setSortBy] = useState<'match' | 'deadline'>('match');
-  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
-  const [visibleCount, setVisibleCount] = useState(6);
 
-  // Filtered & Sorted Opportunities
-  const filteredOpportunities = useMemo(() => {
-    return DEMO_OPPORTUNITIES.filter((opp) => {
-      // Search query
-      const matchesSearch = 
-        opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        opp.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        opp.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        opp.school.toLowerCase().includes(searchQuery.toLowerCase());
+  const isStudent = store.currentRole === 'STUDENT';
+  const opportunities: Opportunity[] = store.opportunities;
 
-      // Category tab
-      const matchesCategory = 
-        selectedCategory === 'All' || 
-        opp.category.toLowerCase() === selectedCategory.toLowerCase();
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onNavigatePortal) {
+      onNavigatePortal('/opportunities' + (searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''));
+    }
+  };
 
-      // School filter
-      const matchesSchool = 
-        selectedSchool === 'all' || 
-        (selectedSchool === 'cse' && opp.school.includes('Computer Science')) ||
-        (selectedSchool === 'business' && opp.school.includes('Business')) ||
-        (selectedSchool === 'design' && opp.school.includes('Design')) ||
-        (selectedSchool === 'law' && opp.school.includes('Law')) ||
-        (selectedSchool === 'sciences' && opp.school.includes('Sciences'));
-
-      // Work mode
-      const matchesWorkMode = 
-        selectedWorkMode === 'all' || 
-        opp.workMode === selectedWorkMode;
-
-      return matchesSearch && matchesCategory && matchesSchool && matchesWorkMode;
-    }).sort((a, b) => {
-      if (sortBy === 'match') return b.matchScore - a.matchScore;
-      return a.deadline.localeCompare(b.deadline);
-    });
-  }, [searchQuery, selectedCategory, selectedSchool, selectedWorkMode, sortBy]);
-
-  const handleResetFilters = () => {
-    setSearchQuery('');
-    setSelectedCategory('All');
-    setSelectedSchool('all');
-    setSelectedWorkMode('all');
-    setSortBy('match');
+  const navigate = (route: string) => {
+    if (onNavigatePortal) {
+      onNavigatePortal(route);
+    }
   };
 
   return (
     <section id="opportunities" className="relative py-24 bg-navy overflow-hidden border-b border-gold-border/40">
       
-      {/* Subtle Background Pattern */}
+      {/* Subtle Background Circuit */}
       <div className="absolute inset-0 bg-tech-circuit opacity-30 pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
         
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-14">
+        {/* 1. SECTION HEADER */}
+        <div className="text-center max-w-3xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-faint border border-gold/30 mb-4">
             <Briefcase className="w-3.5 h-3.5 text-gold" />
-            <span className="text-xs font-semibold tracking-wider uppercase text-gold">
-              CAMPUS HIRING PORTAL
+            <span className="text-xs font-semibold tracking-wider uppercase text-gold font-mono">
+              CAREER DISCOVERY
             </span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-rvu-text font-display tracking-tight mb-4">
-            FIND YOUR OPPORTUNITY
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-rvu-text font-display tracking-tight mb-4">
+            Find Your Opportunity
           </h2>
           
-          <p className="text-base sm:text-lg text-rvu-muted">
-            Explore verified placements, summer internships, and corporate fellowships aligned with your academic specializations.
+          <p className="text-base sm:text-lg text-rvu-muted leading-relaxed mb-4">
+            Explore placement, internship and industry-connected opportunities across RV University.
           </p>
+
+          <div className="flex items-center justify-center gap-2 text-xs font-mono text-rvu-subtle">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-surface border border-white/10">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              {isStudent ? 'Personalized for you' : 'RVU Career Ecosystem'}
+            </span>
+          </div>
         </div>
 
-        {/* Search & Filter Toolbar */}
-        <div className="card-glass rounded-2xl p-5 mb-10 space-y-4">
-          
-          {/* Top Row: Search input + Category Tabs */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 justify-between">
-            
-            {/* Search Box */}
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-gold absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search jobs, internships, companies, skills..."
-                className="w-full bg-navy-surface border border-gold/30 rounded-xl pl-10 pr-4 py-2.5 text-sm text-rvu-text placeholder-rvu-subtle focus:border-gold focus:ring-1 focus:ring-gold transition-all"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-rvu-muted hover:text-gold"
-                >
-                  Clear
-                </button>
-              )}
+        {/* 2. PROMINENT SEARCH BAR */}
+        <div className="max-w-3xl mx-auto mb-16">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <Search className="w-5 h-5 text-gold absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search opportunities, roles, skills or domains…"
+              className="w-full bg-navy-surface border border-gold/30 rounded-2xl pl-12 pr-32 py-4 text-sm sm:text-base text-rvu-text placeholder-rvu-subtle focus:border-gold focus:ring-2 focus:ring-gold shadow-xl transition-all"
+            />
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 btn-gold text-xs sm:text-sm font-bold px-4 py-2 rounded-xl shadow-gold-sm flex items-center gap-1.5"
+            >
+              <span>Search</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+
+        {/* 3. FUNCTIONAL OPPORTUNITY CATEGORY CARDS */}
+        <div className="mb-16">
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div>
+              <span className="text-xs font-mono uppercase text-gold tracking-wider block mb-1">
+                OFFICIAL PATHWAYS
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold font-display text-rvu-text">
+                Explore by Opportunity Type
+              </h3>
             </div>
 
-            {/* Primary Filter Tabs */}
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-navy-surface border border-gold/20 overflow-x-auto">
-              {(['All', 'Placement', 'Internship', 'Job'] as const).map((tab) => {
-                const isSelected = selectedCategory === tab;
+            <button
+              onClick={() => navigate('/opportunities')}
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono text-gold hover:underline"
+            >
+              <span>View All Types</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {CATEGORY_CARDS.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.id}
+                  onClick={() => navigate(card.route)}
+                  className="group card-glass rounded-2xl p-6 transition-all duration-300 hover:border-gold hover:-translate-y-1.5 hover:shadow-gold-glow cursor-pointer flex flex-col justify-between border border-gold-border/40"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                      <div className={`p-2.5 rounded-xl border ${card.accent}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-mono text-rvu-subtle uppercase">
+                        RVU Ecosystem
+                      </span>
+                    </div>
+
+                    <h4 className="text-base font-bold text-rvu-text font-display group-hover:text-gold transition-colors mb-2">
+                      {card.title}
+                    </h4>
+
+                    <p className="text-xs text-rvu-muted leading-relaxed mb-6">
+                      {card.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t border-gold-border/30 flex items-center justify-between text-xs font-semibold text-gold">
+                    <span className="group-hover:underline">{card.cta}</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 4. VERIFIED OPPORTUNITIES PREVIEW (SHARED STORE DATA) */}
+        <div className="mb-16">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+              <span className="text-xs font-mono uppercase text-gold tracking-wider block mb-1">
+                CAMPUS RECRUITMENT DRIVES
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold font-display text-rvu-text">
+                Published Placement & Internship Listings
+              </h3>
+            </div>
+
+            <button
+              onClick={() => navigate('/opportunities')}
+              className="btn-gold text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-gold-sm"
+            >
+              <span>Explore All Opportunities</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {opportunities.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {opportunities.slice(0, 6).map((opp) => {
+                const hasApplied = isStudent && store.applications.some(a => a.opportunityId === opp.id && a.studentId === store.student.id);
+
                 return (
-                  <button
-                    key={tab}
-                    onClick={() => setSelectedCategory(tab)}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
-                      isSelected
-                        ? 'bg-gold text-navy-dark font-bold shadow-sm'
-                        : 'text-rvu-muted hover:text-rvu-text hover:bg-white/5'
-                    }`}
+                  <div
+                    key={opp.id}
+                    onClick={() => navigate(`/opportunities/${opp.id}`)}
+                    className="group card-glass rounded-2xl p-6 transition-all duration-300 hover:border-gold hover:-translate-y-1 hover:shadow-gold-glow cursor-pointer flex flex-col justify-between border border-gold-border/40"
                   >
-                    {tab === 'All' ? 'All Records' : `${tab}s`}
-                  </button>
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-gold-faint text-gold border border-gold/30 font-semibold uppercase">
+                          {opp.type}
+                        </span>
+                        <span className="text-[10px] font-mono text-rvu-subtle">
+                          {opp.workMode}
+                        </span>
+                      </div>
+
+                      <h4 className="text-base font-bold text-rvu-text font-display group-hover:text-gold transition-colors mb-1 line-clamp-1">
+                        {opp.role}
+                      </h4>
+
+                      <div className="flex items-center gap-2 text-xs text-rvu-muted mb-3">
+                        <Building className="w-3.5 h-3.5 text-gold shrink-0" />
+                        <span className="font-semibold text-rvu-text truncate">{opp.companyName}</span>
+                        <span>•</span>
+                        <span className="truncate">{opp.location}</span>
+                      </div>
+
+                      <p className="text-xs text-rvu-muted line-clamp-2 leading-relaxed mb-4">
+                        {opp.description}
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono mb-4 text-rvu-subtle">
+                        <span className="text-gold font-bold">{opp.ctcLpa}</span>
+                        <span>•</span>
+                        <span>Min CGPA: {opp.minCgpa}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-gold-border/30 flex items-center justify-between text-xs">
+                      {opp.applicationDeadline ? (
+                        <div className="flex items-center gap-1 text-[11px] font-mono text-rvu-subtle">
+                          <Clock className="w-3 h-3 text-amber-400" />
+                          <span>Due {opp.applicationDeadline}</span>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] font-mono text-emerald-400">Open Drive</span>
+                      )}
+
+                      <span className="text-gold font-semibold inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                        {hasApplied ? (
+                          <span className="text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Applied
+                          </span>
+                        ) : (
+                          <>
+                            <span>View Opportunity</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  </div>
                 );
               })}
             </div>
-
-          </div>
-
-          {/* Bottom Row: Dropdown Filters & Sort */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gold-border/40 text-xs">
-            
-            <div className="flex flex-wrap items-center gap-3">
-              {/* School Filter Dropdown */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-rvu-muted font-medium">School:</span>
-                <select
-                  value={selectedSchool}
-                  onChange={(e) => setSelectedSchool(e.target.value)}
-                  className="bg-navy-surface border border-gold/20 rounded-lg px-2.5 py-1.5 text-xs text-rvu-text focus:border-gold focus:outline-none"
+          ) : (
+            <div className="card-glass rounded-2xl p-8 text-center max-w-xl mx-auto border-gold/30">
+              <p className="text-sm text-rvu-muted mb-4">
+                No live opportunities are currently published for public viewing.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={onOpenStudentLoginModal}
+                  className="btn-gold text-xs font-bold px-4 py-2 rounded-xl"
                 >
-                  {SCHOOL_FILTERS.map((s) => (
-                    <option key={s.id} value={s.id} className="bg-navy-dark text-rvu-text">
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Work Mode Filter Dropdown */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-rvu-muted font-medium">Mode:</span>
-                <select
-                  value={selectedWorkMode}
-                  onChange={(e) => setSelectedWorkMode(e.target.value as any)}
-                  className="bg-navy-surface border border-gold/20 rounded-lg px-2.5 py-1.5 text-xs text-rvu-text focus:border-gold focus:outline-none"
+                  Sign in as Student
+                </button>
+                <button
+                  onClick={() => navigate('/student/preparation')}
+                  className="btn-navy-outline text-xs font-semibold px-4 py-2 rounded-xl"
                 >
-                  <option value="all" className="bg-navy-dark text-rvu-text">All Modes</option>
-                  <option value="On-site" className="bg-navy-dark text-rvu-text">On-site</option>
-                  <option value="Hybrid" className="bg-navy-dark text-rvu-text">Hybrid</option>
-                  <option value="Remote" className="bg-navy-dark text-rvu-text">Remote</option>
-                </select>
+                  Explore Career Preparation
+                </button>
               </div>
             </div>
-
-            {/* Right: Active Count & Sort */}
-            <div className="flex items-center gap-4 ml-auto">
-              <span className="text-rvu-muted font-mono">
-                Showing <strong className="text-gold">{filteredOpportunities.length}</strong> Opportunities
-              </span>
-
-              <div className="flex items-center gap-1.5">
-                <span className="text-rvu-muted">Sort:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-navy-surface border border-gold/20 rounded-lg px-2.5 py-1.5 text-xs text-rvu-text focus:border-gold focus:outline-none"
-                >
-                  <option value="match" className="bg-navy-dark text-rvu-text">Best Match %</option>
-                  <option value="deadline" className="bg-navy-dark text-rvu-text">Deadline Approaching</option>
-                </select>
-              </div>
-            </div>
-
-          </div>
-
+          )}
         </div>
 
-        {/* Opportunity Cards Grid */}
-        {filteredOpportunities.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredOpportunities.slice(0, visibleCount).map((opportunity) => (
-              <OpportunityCard
-                key={opportunity.id}
-                opportunity={opportunity}
-                onSelect={(opp) => setSelectedOpportunity(opp)}
-              />
-            ))}
-          </div>
-        ) : (
-          /* Empty State */
-          <div className="card-glass rounded-2xl p-12 text-center max-w-lg mx-auto">
-            <div className="w-12 h-12 rounded-full bg-gold-faint border border-gold/30 text-gold flex items-center justify-center mx-auto mb-4">
-              <Filter className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-rvu-text mb-2">No Matching Opportunities Found</h3>
-            <p className="text-xs text-rvu-muted mb-6 leading-relaxed">
-              No campus postings match your current filter parameters. Try broadening your query or resetting all filters.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<RefreshCw className="w-3.5 h-3.5" />}
-              onClick={handleResetFilters}
-            >
-              Reset All Filters
-            </Button>
-          </div>
-        )}
+        {/* 5. OFFICIAL RVU PLACEMENT ECOSYSTEM PANEL */}
+        <div className="mb-12">
+          <RVUPlacementEcosystemPanel />
+        </div>
 
-        {/* Load More Button */}
-        {filteredOpportunities.length > visibleCount && (
-          <div className="mt-12 text-center">
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={() => setVisibleCount((prev) => prev + 3)}
-            >
-              Load More Opportunities
-            </Button>
-          </div>
-        )}
-
-        {/* Detail Modal Dialog */}
-        <OpportunityModal
-          opportunity={selectedOpportunity}
-          onClose={() => setSelectedOpportunity(null)}
-        />
+        {/* 6. BOTTOM CALL TO ACTION */}
+        <div className="text-center pt-8 border-t border-gold-border/30">
+          <button
+            onClick={() => navigate('/opportunities')}
+            className="btn-gold text-sm sm:text-base font-bold px-8 py-3.5 rounded-2xl shadow-gold-glow inline-flex items-center gap-2 hover:scale-[1.02] transition-transform"
+          >
+            <span>Explore All Opportunities in RVU Career Hub</span>
+            <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
 
       </div>
+
     </section>
   );
 };

@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   ArrowLeft, 
   MapPin, 
   Briefcase, 
-  CheckCircle2
+  CheckCircle2,
+  Bookmark,
+  Sparkles
 } from 'lucide-react';
 import type { Opportunity, Student, Application } from '../../../data/platform/types';
+import { useStudentStore } from '../../../data/platform/studentStore';
+import { StudentIntelligenceService } from '../../../services/studentIntelligenceService';
 import { Button } from '../../ui/Button';
 
 interface StudentOpportunityDetailViewProps {
@@ -25,9 +29,15 @@ export const StudentOpportunityDetailView: React.FC<StudentOpportunityDetailView
   onNavigate,
   onOpenApplyModal
 }) => {
+  const store = useStudentStore();
   const opp = opportunities.find(o => o.id === opportunityId);
 
-  if (!opp) {
+  const matchAnalysis = useMemo(() => {
+    if (!opp) return null;
+    return StudentIntelligenceService.calculateOpportunityMatch(student, opp);
+  }, [opp, student]);
+
+  if (!opp || !matchAnalysis) {
     return (
       <div className="p-12 text-center rounded-2xl bg-navy-card border border-white/10 space-y-4">
         <h2 className="text-xl font-bold text-white">Opportunity Not Found</h2>
@@ -46,19 +56,20 @@ export const StudentOpportunityDetailView: React.FC<StudentOpportunityDetailView
 
   const existingApp = applications.find(a => a.opportunityId === opp.id);
   const isApplied = !!existingApp;
+  const isSaved = store.isOpportunitySaved(opp.id);
 
   // Verify student criteria
   const isCgpaEligible = student.cgpa >= opp.minCgpa;
   const isBacklogEligible = student.activeBacklogs <= opp.maxBacklogsAllowed;
-  const isProgEligible = opp.eligibleProgrammes.includes(student.programme);
+  const isProgEligible = opp.eligibleProgrammes.some(p => student.programme.toLowerCase().includes(p.toLowerCase()) || p.toLowerCase().includes(student.programme.toLowerCase()));
   const isGradYearEligible = opp.eligibleGraduationYears.includes(student.graduationYear);
   const isOverallEligible = isCgpaEligible && isBacklogEligible && isProgEligible && isGradYearEligible;
 
   return (
     <div className="space-y-8 animate-fadeIn pb-16">
       
-      {/* Back link */}
-      <div>
+      {/* Back link & Top actions */}
+      <div className="flex items-center justify-between">
         <button
           onClick={() => onNavigate('/student/opportunities')}
           className="flex items-center gap-2 text-xs font-mono text-rvu-muted hover:text-gold transition-colors"
@@ -66,13 +77,25 @@ export const StudentOpportunityDetailView: React.FC<StudentOpportunityDetailView
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Opportunities</span>
         </button>
+
+        <button
+          onClick={() => store.toggleSaveOpportunity(opp.id)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono transition-all ${
+            isSaved 
+              ? 'bg-gold text-navy-dark border-gold font-bold shadow-md' 
+              : 'bg-navy-card border-white/10 text-rvu-subtle hover:text-gold hover:border-gold/40'
+          }`}
+        >
+          <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
+          <span>{isSaved ? 'Saved in Watchlist' : 'Bookmark Role'}</span>
+        </button>
       </div>
 
       {/* Hero Card */}
       <div className="rounded-2xl bg-navy-card border border-gold-border/60 p-6 sm:p-8 space-y-6 shadow-card-elevated">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gold/15 border-2 border-gold/40 flex items-center justify-center text-gold font-bold text-2xl shadow-gold-glow">
+            <div className="w-16 h-16 rounded-2xl bg-gold/15 border-2 border-gold/40 flex items-center justify-center text-gold font-bold text-2xl shadow-gold-glow shrink-0">
               {opp.companyName.charAt(0)}
             </div>
 
@@ -81,10 +104,10 @@ export const StudentOpportunityDetailView: React.FC<StudentOpportunityDetailView
                 <span className="text-xs text-rvu-muted font-medium">
                   {opp.companyName}
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   CAR Approved
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-gold/15 text-gold border border-gold/30">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gold/15 text-gold border border-gold/30">
                   {opp.type}
                 </span>
               </div>
@@ -94,7 +117,7 @@ export const StudentOpportunityDetailView: React.FC<StudentOpportunityDetailView
               </h1>
 
               <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-rvu-subtle pt-1">
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 text-white">
                   <MapPin className="w-3.5 h-3.5 text-gold" />
                   {opp.location}
                 </span>
@@ -155,12 +178,15 @@ export const StudentOpportunityDetailView: React.FC<StudentOpportunityDetailView
             <strong className="text-white">{opp.driveDate}</strong>
           </div>
           <div className="p-3 rounded-xl bg-[#0E1720] border border-white/5">
-            <span className="text-[10px] text-rvu-subtle block">Match Score</span>
-            <strong className="text-gold">{opp.matchScoreForDemoStudent}% Match</strong>
+            <span className="text-[10px] text-rvu-subtle block">Deterministic Match</span>
+            <strong className="text-gold flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              {matchAnalysis.score}% Match
+            </strong>
           </div>
           <div className="p-3 rounded-xl bg-[#0E1720] border border-white/5">
             <span className="text-[10px] text-rvu-subtle block">Selection Mode</span>
-            <strong className="text-emerald-400">Hybrid / Campus</strong>
+            <strong className="text-emerald-400">Campus / Proctored</strong>
           </div>
         </div>
       </div>
@@ -218,7 +244,7 @@ export const StudentOpportunityDetailView: React.FC<StudentOpportunityDetailView
                       <h4 className="text-xs font-bold text-white">
                         {round.title}
                       </h4>
-                      <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-navy-surface text-rvu-muted border border-white/10">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-navy-surface text-rvu-muted border border-white/10">
                         {round.mode}
                       </span>
                     </div>
@@ -233,7 +259,7 @@ export const StudentOpportunityDetailView: React.FC<StudentOpportunityDetailView
 
         </div>
 
-        {/* Right Col: Eligibility Audit Checklist */}
+        {/* Right Col: Eligibility Audit Checklist & Skills Breakdown */}
         <div className="space-y-6">
           
           <div className="p-6 rounded-2xl bg-navy-card border border-emerald-500/40 space-y-4 shadow-card">
@@ -316,34 +342,49 @@ export const StudentOpportunityDetailView: React.FC<StudentOpportunityDetailView
             </div>
           </div>
 
-          {/* Required Skills Matrix */}
-          <div className="p-6 rounded-2xl bg-navy-card border border-gold-border/40 space-y-3">
-            <h2 className="text-base font-bold text-gold uppercase tracking-wider font-mono">
-              Skills Required
-            </h2>
-            <div className="flex flex-wrap gap-1.5">
-              {opp.requiredSkills.map((skill) => (
-                <span 
-                  key={skill}
-                  className="text-xs px-2.5 py-1 rounded-lg bg-[#0E1720] border border-gold/30 text-white font-mono"
-                >
-                  {skill}
-                </span>
-              ))}
+          {/* Required Skills Matrix with Match Highlighting */}
+          <div className="p-6 rounded-2xl bg-navy-card border border-gold-border/40 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-gold uppercase tracking-wider font-mono">
+                Skills Alignment
+              </h2>
+              <span className="text-xs font-mono text-emerald-400">
+                {matchAnalysis.matchedSkills.length} / {opp.requiredSkills.length} matched
+              </span>
             </div>
 
-            {opp.niceToHaveSkills && opp.niceToHaveSkills.length > 0 && (
-              <div className="pt-2 border-t border-white/5 space-y-1.5">
-                <span className="text-[10px] font-mono text-rvu-subtle uppercase">
-                  Preferred / Nice-to-have:
+            <div className="flex flex-wrap gap-1.5">
+              {opp.requiredSkills.map((skill) => {
+                const isMatch = matchAnalysis.matchedSkills.some((s: string) => s.toLowerCase() === skill.toLowerCase());
+                return (
+                  <span 
+                    key={skill}
+                    className={`text-xs px-2.5 py-1 rounded-lg font-mono transition-colors ${
+                      isMatch
+                        ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-semibold'
+                        : 'bg-[#0E1720] border border-white/10 text-rvu-muted'
+                    }`}
+                  >
+                    {isMatch ? `✓ ${skill}` : skill}
+                  </span>
+                );
+              })}
+            </div>
+
+            {matchAnalysis.missingSkills.length > 0 && (
+              <div className="pt-2 border-t border-white/5 space-y-2">
+                <span className="text-[10px] font-mono text-amber-300 uppercase block">
+                  Recommended Skill Focus:
                 </span>
-                <div className="flex flex-wrap gap-1">
-                  {opp.niceToHaveSkills.map((skill) => (
-                    <span key={skill} className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-rvu-muted font-mono">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
+                <p className="text-[11px] text-rvu-muted">
+                  Building proficiency in <strong className="text-white">{matchAnalysis.missingSkills.join(', ')}</strong> will further boost your interview qualification odds.
+                </p>
+                <button
+                  onClick={() => onNavigate('/student/preparation')}
+                  className="text-xs font-mono text-gold hover:underline flex items-center gap-1"
+                >
+                  <span>Open Preparation Tracks &rarr;</span>
+                </button>
               </div>
             )}
           </div>

@@ -22,10 +22,13 @@ import {
   GraduationCap,
   ShieldCheck,
   X,
-  ChevronDown
+  ChevronDown,
+  LogOut
 } from 'lucide-react';
 import { RVU_BRAND } from '../../data/rvu';
 import type { RecruiterAccount, RecruiterRole } from '../../data/platform/types';
+import { useAuth } from '../../context/AuthContext';
+import { SignOutConfirmDialog } from '../auth/SignOutConfirmDialog';
 
 interface RecruiterSidebarProps {
   currentSubroute: string;
@@ -77,6 +80,8 @@ export const RecruiterSidebar: React.FC<RecruiterSidebarProps> = ({
   isOpenMobile = false,
   onCloseMobile
 }) => {
+  const [showSignOutModal, setShowSignOutModal] = React.useState(false);
+  const { user, logout } = useAuth();
   const [isSwitcherOpen, setIsSwitcherOpen] = React.useState(false);
 
   const navSections: NavSection[] = [
@@ -441,8 +446,28 @@ export const RecruiterSidebar: React.FC<RecruiterSidebarProps> = ({
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Public Placement Hub</span>
           </button>
+
+          <button
+            onClick={() => setShowSignOutModal(true)}
+            className="w-full flex items-center justify-center gap-2 p-1.5 rounded text-[11px] text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
+
+      {/* Sign Out Confirmation Modal */}
+      <SignOutConfirmDialog
+        isOpen={showSignOutModal}
+        userEmail={user?.email || activeRecruiter?.email}
+        onCancel={() => setShowSignOutModal(false)}
+        onConfirm={() => {
+          setShowSignOutModal(false);
+          logout();
+          onNavigate('/');
+        }}
+      />
     </>
   );
 };

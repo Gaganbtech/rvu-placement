@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -16,9 +16,12 @@ import {
   LogOut,
   Award,
   ShieldCheck,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 import { RVU_BRAND } from '../../data/rvu';
+import { useAuth } from '../../context/AuthContext';
+import { SignOutConfirmDialog } from '../auth/SignOutConfirmDialog';
 
 interface StudentSidebarProps {
   currentSubroute: string;
@@ -37,75 +40,105 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
   isOpenMobile = false,
   onCloseMobile
 }) => {
-  const mainNavItems = [
-    {
-      label: 'Dashboard',
-      route: '/student',
-      icon: <LayoutDashboard className="w-4 h-4" />
-    },
-    {
-      label: 'Opportunities',
-      route: '/student/opportunities',
-      icon: <Briefcase className="w-4 h-4" />
-    },
-    {
-      label: 'My Applications',
-      route: '/student/applications',
-      icon: <FileText className="w-4 h-4" />
-    },
-    {
-      label: 'Placement Drives',
-      route: '/student/drives',
-      icon: <Building className="w-4 h-4" />
-    },
-    {
-      label: 'My Offers',
-      route: '/student/offers',
-      icon: <Award className="w-4 h-4" />
-    },
-    {
-      label: 'Career Preparation',
-      route: '/student/preparation',
-      icon: <Compass className="w-4 h-4" />
-    },
-    {
-      label: 'Skills & Gaps',
-      route: '/student/skills',
-      icon: <Sparkles className="w-4 h-4" />
-    },
-    {
-      label: 'Placement Calendar',
-      route: '/student/calendar',
-      icon: <Calendar className="w-4 h-4" />
-    },
-    {
-      label: 'Resources & Policy',
-      route: '/student/resources',
-      icon: <BookOpen className="w-4 h-4" />
-    },
-    {
-      label: 'Documents',
-      route: '/student/documents',
-      icon: <FolderLock className="w-4 h-4" />
-    },
-    {
-      label: 'Student Profile',
-      route: '/student/profile',
-      icon: <UserCheck className="w-4 h-4" />
-    }
-  ];
+  const { user, logout } = useAuth();
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-  const secondaryNavItems = [
+  const navGroups = [
     {
-      label: 'Notifications',
-      route: '/student/notifications',
-      icon: <Bell className="w-4 h-4" />,
-      badge: unreadNotifications > 0 ? unreadNotifications : undefined
+      title: 'OVERVIEW',
+      items: [
+        {
+          label: 'Dashboard',
+          route: '/student',
+          icon: <LayoutDashboard className="w-4 h-4" />
+        }
+      ]
     },
     {
-      label: 'Help & Support',
-      route: '/student/support',
-      icon: <LifeBuoy className="w-4 h-4" />
+      title: 'CAREER',
+      items: [
+        {
+          label: 'Opportunities',
+          route: '/student/opportunities',
+          icon: <Briefcase className="w-4 h-4" />
+        },
+        {
+          label: 'My Applications',
+          route: '/student/applications',
+          icon: <FileText className="w-4 h-4" />
+        },
+        {
+          label: 'Placement Drives',
+          route: '/student/drives',
+          icon: <Building className="w-4 h-4" />
+        },
+        {
+          label: 'My Offers',
+          route: '/student/offers',
+          icon: <Award className="w-4 h-4" />
+        }
+      ]
+    },
+    {
+      title: 'PREPARE',
+      items: [
+        {
+          label: 'Career Preparation',
+          route: '/student/preparation',
+          icon: <Compass className="w-4 h-4" />
+        },
+        {
+          label: 'Skills Intelligence',
+          route: '/student/skills',
+          icon: <Sparkles className="w-4 h-4" />
+        },
+        {
+          label: 'Career Resources',
+          route: '/student/resources',
+          icon: <BookOpen className="w-4 h-4" />
+        }
+      ]
+    },
+    {
+      title: 'ORGANIZE',
+      items: [
+        {
+          label: 'Placement Calendar',
+          route: '/student/calendar',
+          icon: <Calendar className="w-4 h-4" />
+        },
+        {
+          label: 'Document Vault',
+          route: '/student/documents',
+          icon: <FolderLock className="w-4 h-4" />
+        }
+      ]
+    },
+    {
+      title: 'ACCOUNT',
+      items: [
+        {
+          label: 'Student Profile',
+          route: '/student/profile',
+          icon: <UserCheck className="w-4 h-4" />
+        },
+        {
+          label: 'Notifications',
+          route: '/student/notifications',
+          icon: <Bell className="w-4 h-4" />,
+          badge: unreadNotifications > 0 ? unreadNotifications : undefined
+        },
+        {
+          label: 'Support Desk',
+          route: '/student/support',
+          icon: <LifeBuoy className="w-4 h-4" />
+        },
+        {
+          label: 'Settings',
+          route: '/student/settings',
+          icon: <Settings className="w-4 h-4" />
+        }
+      ]
     }
   ];
 
@@ -165,67 +198,41 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
         </div>
       </div>
 
-      {/* Main Scrollable Nav Links */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 custom-scrollbar">
-        
-        {/* Core Workspace */}
-        <div className="space-y-1">
-          <div className="px-3 pb-1 text-[10px] font-mono text-rvu-subtle uppercase tracking-wider">
-            Workspace
+      {/* Main Scrollable Nav Links Organized by 5 Groups */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
+        {navGroups.map((group) => (
+          <div key={group.title} className="space-y-1">
+            <div className="px-3 pb-1 text-[10px] font-mono text-rvu-subtle uppercase tracking-wider font-semibold">
+              {group.title}
+            </div>
+            {group.items.map((item) => {
+              const active = isActive(item.route);
+              return (
+                <button
+                  key={item.route}
+                  onClick={() => handleItemClick(item.route)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                    active
+                      ? 'bg-gold/15 text-gold border border-gold/40 shadow-sm font-semibold'
+                      : 'text-rvu-muted hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 truncate">
+                    <span className={active ? 'text-gold' : 'text-rvu-subtle'}>
+                      {item.icon}
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-gold text-navy-dark shrink-0">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          {mainNavItems.map((item) => {
-            const active = isActive(item.route);
-            return (
-              <button
-                key={item.route}
-                onClick={() => handleItemClick(item.route)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  active
-                    ? 'bg-gold/15 text-gold border border-gold/40 shadow-sm font-semibold'
-                    : 'text-rvu-muted hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <span className={active ? 'text-gold' : 'text-rvu-subtle'}>
-                  {item.icon}
-                </span>
-                <span className="truncate">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Communications & Support */}
-        <div className="space-y-1">
-          <div className="px-3 pb-1 text-[10px] font-mono text-rvu-subtle uppercase tracking-wider">
-            Communication & Desk
-          </div>
-          {secondaryNavItems.map((item) => {
-            const active = isActive(item.route);
-            return (
-              <button
-                key={item.route}
-                onClick={() => handleItemClick(item.route)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  active
-                    ? 'bg-gold/15 text-gold border border-gold/40 shadow-sm font-semibold'
-                    : 'text-rvu-muted hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <div className="flex items-center gap-3 truncate">
-                  <span className={active ? 'text-gold' : 'text-rvu-subtle'}>
-                    {item.icon}
-                  </span>
-                  <span className="truncate">{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-gold text-navy-dark font-bold">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        ))}
 
         {/* Placement Office Authority Badge */}
         <div className="p-3 rounded-xl bg-[#0F1822] border border-gold-border/30 text-[11px] space-y-1.5">
@@ -250,15 +257,11 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
         </button>
 
         <button
-          onClick={() => {
-            if (confirm('Demo Account: Reset your session and return to Public Portal?')) {
-              onBackToPublic();
-            }
-          }}
+          onClick={() => setShowSignOutModal(true)}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
         >
           <LogOut className="w-4 h-4" />
-          <span>Sign Out (Demo Reset)</span>
+          <span>Sign Out</span>
         </button>
       </div>
 
@@ -284,6 +287,18 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
           </div>
         </div>
       )}
+
+      {/* Sign Out Confirmation Modal */}
+      <SignOutConfirmDialog
+        isOpen={showSignOutModal}
+        userEmail={user?.email}
+        onCancel={() => setShowSignOutModal(false)}
+        onConfirm={() => {
+          setShowSignOutModal(false);
+          logout();
+          onBackToPublic();
+        }}
+      />
     </>
   );
 };

@@ -6,13 +6,18 @@ import {
   Search,
   PlusCircle,
   Building2,
-  ShieldCheck,
   User,
   ChevronDown,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  Settings,
+  Lock,
+  LogOut
 } from 'lucide-react';
 import type { RecruiterAccount, RecruiterNotification, RecruiterRole } from '../../data/platform/types';
+import { useAuth } from '../../context/AuthContext';
+import { deriveInitialsFromEmail } from '../../services/authService';
+import { SignOutConfirmDialog } from '../auth/SignOutConfirmDialog';
 
 interface RecruiterHeaderProps {
   currentSubroute: string;
@@ -39,7 +44,9 @@ export const RecruiterHeader: React.FC<RecruiterHeaderProps> = ({
 }) => {
   const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { user, logout } = useAuth();
 
   // Compute breadcrumb title based on subroute
   const getRouteLabel = () => {
@@ -207,17 +214,16 @@ export const RecruiterHeader: React.FC<RecruiterHeaderProps> = ({
             onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
             className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#20303A] transition-colors border border-transparent hover:border-[#CCAA68]/20"
           >
-            <div className="w-8 h-8 rounded-full bg-[#CCAA68]/20 border border-[#CCAA68]/40 flex items-center justify-center text-[#D8B978] font-bold text-xs">
-              {activeRecruiter?.name?.slice(0, 2).toUpperCase() || 'RD'}
+            <div className="w-8 h-8 rounded-full bg-[#CCAA68]/20 border border-[#CCAA68]/40 flex items-center justify-center text-[#D8B978] font-bold text-xs font-mono">
+              {deriveInitialsFromEmail(user?.email || activeRecruiter?.email || 'recruiter@rvu.edu.in', user?.displayName || activeRecruiter?.name)}
             </div>
             <div className="text-left hidden xl:block min-w-0">
-              <div className="text-xs font-semibold text-white truncate">
-                {activeRecruiter?.name || 'Rohit Deshmukh'}
+              <div className="text-xs font-semibold text-white truncate max-w-[130px]">
+                {user?.displayName || activeRecruiter?.name || 'Recruiter'}
               </div>
-              <div className="text-[10px] text-gray-400 truncate flex items-center gap-1">
-                <span>{recruiterRole.replace('_', ' ')}</span>
-                <span className="text-[#CCAA68]">•</span>
-                <span className="text-emerald-400">Verified</span>
+              <div className="text-[10px] text-gray-400 truncate max-w-[130px] flex items-center gap-1">
+                <span>{user?.email || activeRecruiter?.email}</span>
+                {recruiterRole && <span className="text-[#CCAA68]">• {recruiterRole.replace('_', ' ')}</span>}
               </div>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
@@ -226,12 +232,12 @@ export const RecruiterHeader: React.FC<RecruiterHeaderProps> = ({
           {isProfileDropdownOpen && (
             <div className="absolute right-0 mt-2 w-64 bg-[#101A22] border border-[#CCAA68]/30 rounded-xl shadow-2xl overflow-hidden z-50 p-2 space-y-1">
               <div className="p-2 bg-[#20303A] rounded-lg border border-[#CCAA68]/20">
-                <div className="text-xs font-semibold text-white">{activeRecruiter?.name}</div>
-                <div className="text-[11px] text-gray-300">{activeRecruiter?.email}</div>
-                <div className="text-[10px] text-[#CCAA68] mt-0.5">{activeRecruiter?.companyName}</div>
-                <div className="mt-1.5 flex items-center gap-1 text-[10px] text-emerald-400">
-                  <ShieldCheck className="w-3 h-3" />
-                  <span>CAR Authorized Recruiter</span>
+                <div className="text-xs font-semibold text-white">{user?.displayName || activeRecruiter?.name}</div>
+                <div className="text-[11px] text-gray-300 truncate">{user?.email || activeRecruiter?.email}</div>
+                <div className="text-[10px] text-[#CCAA68] mt-0.5">{activeRecruiter?.companyName || 'Corporate Recruiter'}</div>
+                <div className="mt-1.5 flex items-center gap-1 text-[10px] font-mono text-amber-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  <span>DEMO MODE SESSION</span>
                 </div>
               </div>
 
@@ -278,10 +284,57 @@ export const RecruiterHeader: React.FC<RecruiterHeaderProps> = ({
                 <MessageSquare className="w-3.5 h-3.5 text-[#CCAA68]" />
                 <span>Direct Contact CAR Office</span>
               </button>
+
+              <button
+                onClick={() => {
+                  onNavigate('/recruiter/settings');
+                  setIsProfileDropdownOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-[#20303A] hover:text-white rounded-lg flex items-center gap-2"
+              >
+                <Settings className="w-3.5 h-3.5 text-[#CCAA68]" />
+                <span>Settings & Preferences</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onNavigate('/recruiter/settings/security');
+                  setIsProfileDropdownOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-[#20303A] hover:text-white rounded-lg flex items-center gap-2"
+              >
+                <Lock className="w-3.5 h-3.5 text-[#CCAA68]" />
+                <span>Password & Security</span>
+              </button>
+
+              <div className="border-t border-white/10 pt-1 mt-1">
+                <button
+                  onClick={() => {
+                    setIsProfileDropdownOpen(false);
+                    setShowSignOutModal(true);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 rounded-lg flex items-center gap-2"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Sign Out Confirmation Modal */}
+      <SignOutConfirmDialog
+        isOpen={showSignOutModal}
+        userEmail={user?.email || activeRecruiter?.email}
+        onCancel={() => setShowSignOutModal(false)}
+        onConfirm={() => {
+          setShowSignOutModal(false);
+          logout();
+          onNavigate('/');
+        }}
+      />
     </header>
   );
 };
