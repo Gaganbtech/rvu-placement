@@ -319,7 +319,7 @@ export interface PlacementDrive {
 
 // 6. Application Entity (Shared Model across all 3 portals)
 export interface Application {
-  id: string; // e.g., 'DEMO-APP-0001'
+  id: string; // e.g., 'APP-2026-0001'
   studentId: string;
   opportunityId: string;
   recruiterId: string;
@@ -397,6 +397,7 @@ export interface Offer {
   applicationId: string;
   studentId: string;
   studentName?: string;
+  companyId?: string;
   companyName: string;
   companyLogo: string;
   role: string;

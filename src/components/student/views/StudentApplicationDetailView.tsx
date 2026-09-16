@@ -159,8 +159,8 @@ export const StudentApplicationDetailView: React.FC<StudentApplicationDetailView
                 </h2>
               </div>
 
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-rvu-subtle">
-                DEMO DATA
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gold-faint text-gold">
+                LIVE STATUS
               </span>
             </div>
 

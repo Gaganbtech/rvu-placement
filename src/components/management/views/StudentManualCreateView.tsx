@@ -77,7 +77,7 @@ export const StudentManualCreateView: React.FC<StudentManualCreateViewProps> = (
       name: formData.name.trim(),
       email: formData.email.trim(),
       phone: formData.phone.trim() || '+91 98000 00000',
-      isDemo: true,
+      isDemo: false,
       school: formData.school,
       programme: formData.programme,
       specialization: 'General',

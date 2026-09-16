@@ -8,7 +8,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
     description: 'Master quantitative math, logical deduction, data interpretation, and verbal reasoning commonly evaluated in round-one recruiter screenings.',
     iconName: 'Calculator',
     tasksCount: 4,
-    completedTasksCount: 3,
+    completedTasksCount: 0,
     tasks: [
       {
         id: 'task-apt-1',
@@ -18,7 +18,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Practice high-frequency quantitative problems tested by marquee tech and consulting campus recruiters.',
         estimatedMinutes: 45,
         difficulty: 'Foundation',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Master conditional probability and Bayes theorem shortcuts',
           'Solve time, speed, distance problems using proportional analysis',
@@ -33,7 +33,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Linear and circular arrangement puzzles, family tree deductions, and syllogisms.',
         estimatedMinutes: 40,
         difficulty: 'Intermediate',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Develop step-by-step constraint grids for multi-variable logic games',
           'Solve statement-assumption and critical reasoning problems with zero bias'
@@ -47,7 +47,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Analyze multi-axis charts, growth rates, and statistical distributions under strict timed test conditions.',
         estimatedMinutes: 50,
         difficulty: 'Intermediate',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Quick percentage estimation and approximate compounding calculations',
           'Extract actionable conclusions from multi-tiered financial reports'
@@ -76,7 +76,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
     description: 'Deep technical competencies spanning tree algorithms, dynamic programming, relational databases, and system design.',
     iconName: 'Cpu',
     tasksCount: 4,
-    completedTasksCount: 2,
+    completedTasksCount: 0,
     tasks: [
       {
         id: 'task-tech-1',
@@ -86,7 +86,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Core graph representations, topological sorting, shortest path algorithms, and cycle detection.',
         estimatedMinutes: 60,
         difficulty: 'Intermediate',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Implement adjacency list representations and recursive DFS patterns',
           'Apply BFS for unweighted shortest paths and level-order traversals',
@@ -101,7 +101,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Write optimized SQL queries, manage indexing strategies (B-Tree, Hash), and understand ACID transactions.',
         estimatedMinutes: 45,
         difficulty: 'Intermediate',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Formulate complex JOINs, GROUP BY aggregations, and window functions',
           'Explain transaction isolation levels and concurrency control anomalies'
@@ -145,7 +145,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
     description: 'Solve real-world coding interview challenges with timed test execution and edge-case validation.',
     iconName: 'Code',
     tasksCount: 3,
-    completedTasksCount: 1,
+    completedTasksCount: 0,
     tasks: [
       {
         id: 'task-code-1',
@@ -155,7 +155,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Optimize O(n²) subarray and string problems to linear O(n) runtime.',
         estimatedMinutes: 45,
         difficulty: 'Foundation',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Identify problem constraints requiring continuous subarray tracking',
           'Manage left and right boundary conditions without off-by-one errors'
@@ -198,7 +198,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
     description: 'Elevate verbal articulation, executive presentation, and workplace correspondence.',
     iconName: 'MessageSquare',
     tasksCount: 3,
-    completedTasksCount: 2,
+    completedTasksCount: 0,
     tasks: [
       {
         id: 'task-comm-1',
@@ -208,7 +208,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Drafting crisp status updates, formal inquiries to recruiters, and structured meeting follow-ups.',
         estimatedMinutes: 30,
         difficulty: 'Foundation',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Structure subject lines and call-to-action blocks clearly',
           'Maintain courteous, institutional tone in cross-functional dialogues'
@@ -222,7 +222,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Frame architectural decisions in terms of business impact, reliability, and cost-efficiency.',
         estimatedMinutes: 45,
         difficulty: 'Intermediate',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Use intuitive metaphors without sacrificing technical precision',
           'Lead with the outcome before detailing the implementation mechanism'
@@ -251,7 +251,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
     description: 'Master STAR behavioral responses, interviewer rapport, technical walkthroughs, and post-interview inquiries.',
     iconName: 'Award',
     tasksCount: 3,
-    completedTasksCount: 1,
+    completedTasksCount: 0,
     tasks: [
       {
         id: 'task-int-1',
@@ -261,7 +261,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Structure Situation, Task, Action, and Result into concise 2-minute stories demonstrating impact.',
         estimatedMinutes: 40,
         difficulty: 'Foundation',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Emphasize YOUR specific actions rather than vague group efforts',
           'Quantify results with measurable metrics (latency reduction, % savings, user growth)'
@@ -304,7 +304,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
     description: 'Transform your resume into a Tier-1 compliant document that passes applicant tracking systems and impresses recruiters.',
     iconName: 'FileText',
     tasksCount: 3,
-    completedTasksCount: 3,
+    completedTasksCount: 0,
     tasks: [
       {
         id: 'task-res-1',
@@ -314,7 +314,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Accomplished [X], as measured by [Y], by doing [Z].',
         estimatedMinutes: 35,
         difficulty: 'Foundation',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Eliminate passive voice and replace with strong action verbs',
           'Ensure every bullet point includes tangible numbers or operational metrics'
@@ -328,7 +328,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Remove multi-column tables, complex graphics, and non-standard fonts that break ATS parsers.',
         estimatedMinutes: 30,
         difficulty: 'Foundation',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Use standardized section headers (Education, Experience, Projects, Skills)',
           'Ensure PDF output renders clean selectable text without glyph corruption'
@@ -342,7 +342,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Strategically emphasize matching keywords and frameworks requested by the target role.',
         estimatedMinutes: 30,
         difficulty: 'Intermediate',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Identify top 5 technical skills required in the job description',
           'Promote relevant coursework and project achievements to the top third of the page'
@@ -357,7 +357,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
     description: 'Participate constructively in campus recruitment group discussions, case studies, and panel debates.',
     iconName: 'Users',
     tasksCount: 2,
-    completedTasksCount: 1,
+    completedTasksCount: 0,
     tasks: [
       {
         id: 'task-gd-1',
@@ -367,7 +367,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Opening discussions with a clear definition, contextual framing, and multi-perspective roadmap.',
         estimatedMinutes: 35,
         difficulty: 'Intermediate',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Define the scope and core terminology before diving into opinions',
           'Encourage balanced participation without aggressive interjections'
@@ -396,7 +396,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
     description: 'Specialized competencies tailored to current hiring pipelines across cloud computing, microservices, and AI engineering.',
     iconName: 'Layers',
     tasksCount: 2,
-    completedTasksCount: 1,
+    completedTasksCount: 0,
     tasks: [
       {
         id: 'task-dom-1',
@@ -406,7 +406,7 @@ export const OFFICIAL_PREPARATION_TRACKS: PreparationTrack[] = [
         description: 'Containerizing applications, orchestrating multi-service workloads, and basic CI/CD pipelines.',
         estimatedMinutes: 60,
         difficulty: 'Intermediate',
-        isCompleted: true,
+        isCompleted: false,
         learningPoints: [
           'Write multi-stage Dockerfiles for minimal production image footprints',
           'Deploy pods, services, and ingress controllers in Kubernetes'

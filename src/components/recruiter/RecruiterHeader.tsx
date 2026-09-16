@@ -238,10 +238,9 @@ export const RecruiterHeader: React.FC<RecruiterHeaderProps> = ({
               <div className="p-2 bg-[#20303A] rounded-lg border border-[#CCAA68]/20">
                 <div className="text-xs font-semibold text-white">{user?.displayName || activeRecruiter?.name}</div>
                 <div className="text-[11px] text-gray-300 truncate">{user?.email || activeRecruiter?.email}</div>
-                <div className="text-[10px] text-[#CCAA68] mt-0.5">{activeRecruiter?.companyName || 'Corporate Recruiter'}</div>
-                <div className="mt-1.5 flex items-center gap-1 text-[10px] font-mono text-amber-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  <span>DEMO MODE SESSION</span>
+                <div className="mt-1.5 flex items-center gap-1 text-[10px] font-mono text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span>AUTHENTICATED // RECRUITER</span>
                 </div>
               </div>
 

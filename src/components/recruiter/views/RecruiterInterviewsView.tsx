@@ -41,8 +41,8 @@ export const RecruiterInterviewsView: React.FC<RecruiterInterviewsViewProps> = (
     const candidateApp = store.recruiterApplications.find(a => a.studentId === candId);
 
     store.scheduleRecruiterInterview({
-      applicationId: candidateApp?.id || 'DEMO-APP-0001',
-      studentId: candidate?.id || 'RVU2023CSE042',
+      applicationId: candidateApp?.id || `APP-${Date.now()}`,
+      studentId: candidate?.id || 'RVU-PENDING',
       studentName: candidate?.name || 'RVU Candidate',
       studentEmail: candidate?.email || 'student@rvu.edu.in',
       programme: candidate?.programme || 'B.Tech (Hons.) Computer Science & Engineering',

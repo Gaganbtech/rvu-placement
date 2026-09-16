@@ -257,10 +257,9 @@ export const StudentHeader: React.FC<StudentHeaderProps> = ({
                 {/* User Header */}
                 <div className="p-3 bg-[#19252F] rounded-xl border border-white/5 space-y-1">
                   <div className="font-bold text-white text-xs">{user?.displayName || student.name}</div>
-                  <div className="text-[10px] font-mono text-rvu-subtle truncate">{user?.email || student.email}</div>
-                  <div className="flex items-center gap-1.5 pt-1 text-[10px] font-mono text-amber-300">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                    <span>DEMO MODE SESSION</span>
+                  <div className="flex items-center gap-1.5 pt-1 text-[10px] font-mono text-emerald-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>AUTHENTICATED // STUDENT</span>
                   </div>
                 </div>
 

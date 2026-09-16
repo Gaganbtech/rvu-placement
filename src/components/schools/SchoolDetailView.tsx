@@ -16,7 +16,7 @@ import {
   Layers
 } from 'lucide-react';
 import type { SchoolInfo, DegreeLevel } from '../../data/schools';
-import { DEMO_OPPORTUNITIES } from '../../data/opportunities';
+import { usePlatformStore } from '../../data/platform/studentStore';
 
 interface SchoolDetailViewProps {
   school: SchoolInfo;
@@ -34,6 +34,7 @@ export const SchoolDetailView: React.FC<SchoolDetailViewProps> = ({
   onNavigatePortal
 }) => {
   const [activeProgrammeTab, setActiveProgrammeTab] = useState<DegreeLevel | 'ALL'>('ALL');
+  const { opportunities } = usePlatformStore();
 
   // Filter programmes by degree level tab
   const filteredProgrammes = school.programmes.filter(p => {
@@ -42,14 +43,18 @@ export const SchoolDetailView: React.FC<SchoolDetailViewProps> = ({
   });
 
   // Filter matching placement opportunities from Career Hub
-  const matchedOpportunities = DEMO_OPPORTUNITIES.filter(opp => {
+  const matchedOpportunities = opportunities.filter(opp => {
+    const oppSchools = opp.eligibleSchools || [];
     const matchesSchoolName =
-      opp.school.toLowerCase().includes(school.name.toLowerCase()) ||
-      opp.school.toLowerCase().includes(school.shortName.toLowerCase()) ||
-      school.name.toLowerCase().includes(opp.school.toLowerCase());
+      oppSchools.some(s =>
+        s.toLowerCase().includes(school.name.toLowerCase()) ||
+        s.toLowerCase().includes(school.shortName.toLowerCase()) ||
+        school.name.toLowerCase().includes(s.toLowerCase())
+      );
 
-    const matchesDomain = opp.tags.some(tag =>
-      school.careerDomains.some(d => d.toLowerCase().includes(tag.toLowerCase()) || tag.toLowerCase().includes(d.toLowerCase()))
+    const oppSkills = [...(opp.requiredSkills || []), ...(opp.niceToHaveSkills || [])];
+    const matchesDomain = oppSkills.some((skill: string) =>
+      school.careerDomains.some(d => d.toLowerCase().includes(skill.toLowerCase()) || skill.toLowerCase().includes(d.toLowerCase()))
     );
 
     return matchesSchoolName || matchesDomain;
@@ -455,18 +460,18 @@ export const SchoolDetailView: React.FC<SchoolDetailViewProps> = ({
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-1.5">
                             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gold-faint text-gold">
-                              {opp.category}
+                              {opp.type}
                             </span>
                             <span className="text-[10px] text-rvu-subtle font-mono">
-                              {opp.compensation}
+                              {opp.ctcLpa}
                             </span>
                           </div>
                           <h4 className="text-xs sm:text-sm font-bold text-rvu-text mb-1 line-clamp-1">
-                            {opp.title}
+                            {opp.role}
                           </h4>
                           <div className="text-xs text-rvu-muted mb-3 flex items-center gap-1">
                             <Building className="w-3 h-3 text-gold" />
-                            <span>{opp.company}</span>
+                            <span>{opp.companyName}</span>
                           </div>
                         </div>
 

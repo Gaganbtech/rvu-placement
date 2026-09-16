@@ -40,7 +40,7 @@ export const RecruiterOffersView: React.FC<RecruiterOffersViewProps> = ({
 
     store.createRecruiterOffer({
       studentId: candId,
-      applicationId: candApp?.id || 'DEMO-APP-0001',
+      applicationId: candApp?.id || `APP-${Date.now()}`,
       role,
       ctcLpa,
       baseSalary,
