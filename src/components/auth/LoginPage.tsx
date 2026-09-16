@@ -20,7 +20,7 @@ import { normalizeRole } from '../../services/authService';
 interface LoginPageProps {
   initialRole?: UserRole | AuthRole;
   onBackToPortals: () => void;
-  onLoginSuccess: (role: UserRole) => void;
+  onLoginSuccess: (role: UserRole, redirectRoute?: string) => void;
   onNavigateForgotPassword?: () => void;
   onNavigateRegister?: () => void;
   onNavigateRecruiterRequest?: () => void;
@@ -111,12 +111,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       });
 
       if (result.success && result.user) {
-        onLoginSuccess(result.user.role);
+        onLoginSuccess(result.user.role, result.redirectRoute);
       } else {
-        setErrorMsg(result.error || 'Invalid user ID or password.');
+        setErrorMsg(result.error || 'Email or password is incorrect.');
       }
     } catch {
-      setErrorMsg('Invalid user ID or password.');
+      setErrorMsg('We couldn\'t load your account information. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

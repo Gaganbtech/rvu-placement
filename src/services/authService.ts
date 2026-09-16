@@ -152,7 +152,6 @@ export class SupabaseAuthService {
   public async login(credentials: LoginCredentials): Promise<LoginResult> {
     const email = (credentials.email || credentials.identifier || '').trim().toLowerCase();
     const password = (credentials.password || '').trim();
-    const requestedPortal = credentials.role ? normalizeRole(credentials.role) : undefined;
 
     if (!email || !password) {
       return {
@@ -190,7 +189,7 @@ export class SupabaseAuthService {
         await supabase.auth.signOut();
         return {
           success: false,
-          error: 'Your account is not fully provisioned yet. Please contact the RVU Placement Cell.'
+          error: 'Your account is authenticated, but your RVU Career Hub profile is not configured.'
         };
       }
 
@@ -199,7 +198,7 @@ export class SupabaseAuthService {
         await supabase.auth.signOut();
         return {
           success: false,
-          error: 'Your account is awaiting activation. Please contact the RVU Placement Cell.'
+          error: 'Your RVU Career Hub account is inactive.'
         };
       }
 
@@ -208,19 +207,13 @@ export class SupabaseAuthService {
         await supabase.auth.signOut();
         return {
           success: false,
-          error: 'Your account does not have an assigned portal role. Please contact the RVU Placement Cell.'
+          error: 'Your portal access has not been assigned yet. Please contact the Placement Cell.'
         };
       }
 
-      // 5. Role Enforcement & Conflict Prevention
+      // 5. Authoritative role from database is the ONLY source of authorization truth.
+      // UI portal selector is strictly a UI hint; user is always navigated to their real database role.
       const authoritativeRole = profile.role;
-      if (requestedPortal && requestedPortal !== authoritativeRole) {
-        await supabase.auth.signOut();
-        return {
-          success: false,
-          error: `Access Denied: Account is registered as ${authoritativeRole.toUpperCase()} and cannot access the ${requestedPortal.toUpperCase()} portal.`
-        };
-      }
 
       const authUser: AuthUser = {
         id: authData.user.id,
@@ -246,6 +239,8 @@ export class SupabaseAuthService {
       return {
         success: true,
         user: authUser,
+        session: authData.session,
+        profile,
         redirectRoute
       };
     } catch (err: unknown) {

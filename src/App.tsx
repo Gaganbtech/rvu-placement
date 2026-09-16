@@ -50,6 +50,7 @@ import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
 import { RecruiterAccessRequestPage } from './components/auth/RecruiterAccessRequestPage';
 import { RoleRoute } from './components/auth/RoleRoute';
+import { AuthLoadingScreen } from './components/auth/AuthLoadingScreen';
 import type { AuthRole } from './types/auth';
 
 // Helper to determine the initial route synchronously to prevent blank screen
@@ -160,7 +161,7 @@ const AppContent: React.FC = () => {
     }, 50);
   };
 
-  const { isAuthenticated, user, isVerifyingAuth } = useAuth();
+  const { isAuthenticated, user, isVerifyingAuth, isInitialized, isLoading } = useAuth();
 
   const getChatbotRole = (): UserRoleContext => {
     if (!isAuthenticated || !user) return 'public';
@@ -172,7 +173,7 @@ const AppContent: React.FC = () => {
 
   const renderPageContent = () => {
     // Immediate verification state for protected and auth routes during initial boot/sync
-    if (isVerifyingAuth) {
+    if (!isInitialized || isLoading || isVerifyingAuth) {
       const isProtectedOrAuth = 
         currentRoute.startsWith('/student') ||
         currentRoute.startsWith('/recruiter') ||
@@ -185,24 +186,7 @@ const AppContent: React.FC = () => {
         currentRoute.startsWith('/portals');
 
       if (isProtectedOrAuth) {
-        return (
-          <div className="min-h-screen bg-[#101A22] text-white flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#19252F] border border-[#CCAA68]/30 flex items-center justify-center p-2 mb-4 shadow-xl animate-pulse">
-              <img 
-                src="/src/assets/rvu-logo-gold.svg" 
-                alt="RV University" 
-                className="w-full h-full object-contain" 
-              />
-            </div>
-            <div className="text-sm font-bold font-display text-white tracking-wide">
-              RV UNIVERSITY • RVU CAREER HUB
-            </div>
-            <div className="text-xs text-[#D8B978] font-mono mt-1">
-              Verifying RVU Career Hub access...
-            </div>
-            <div className="w-6 h-6 rounded-full border-2 border-[#CCAA68] border-t-transparent animate-spin mt-4" />
-          </div>
-        );
+        return <AuthLoadingScreen message="Verifying RVU Career Hub access..." />;
       }
     }
 
@@ -213,7 +197,8 @@ const AppContent: React.FC = () => {
     }
 
     // Authenticated users entering /portals, /login, or /register are redirected directly to their assigned portal
-    if (isAuthenticated && user && (currentRoute.startsWith('/portals') || currentRoute.startsWith('/login') || currentRoute.startsWith('/register'))) {
+    // strictly after initialization completes to avoid race conditions
+    if (isInitialized && !isLoading && isAuthenticated && user && (currentRoute.startsWith('/portals') || currentRoute.startsWith('/login') || currentRoute.startsWith('/register'))) {
       const authorizedHome = user.role === 'student' ? '/student' : user.role === 'recruiter' ? '/recruiter' : '/management';
       handleNavigatePortal(authorizedHome);
       return null;
@@ -238,8 +223,8 @@ const AppContent: React.FC = () => {
           key={roleParam}
           initialRole={roleParam}
           onBackToPortals={() => handleNavigatePortal('/portals')}
-          onLoginSuccess={(role) => {
-            const target = role === 'student' ? '/student' : role === 'recruiter' ? '/recruiter' : '/management';
+          onLoginSuccess={(role, redirectRoute) => {
+            const target = redirectRoute || (role === 'student' ? '/student' : role === 'recruiter' ? '/recruiter' : '/management');
             handleNavigatePortal(target);
           }}
           onNavigateForgotPassword={() => handleNavigatePortal('/forgot-password')}

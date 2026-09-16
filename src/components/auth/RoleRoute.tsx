@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { AccessRestrictedView } from './AccessRestrictedView';
 import { FirstLoginPasswordModal } from './FirstLoginPasswordModal';
 import { AccountStatusView } from './AccountStatusView';
+import { AuthLoadingScreen } from './AuthLoadingScreen';
 
 interface RoleRouteProps {
   allowedRoles: UserRole[];
@@ -12,17 +13,19 @@ interface RoleRouteProps {
   children: React.ReactNode;
 }
 
+const validRoles: UserRole[] = ['student', 'recruiter', 'placement'];
+
 /**
- * Strict Role-Based Route Protection
+ * Strict Role-Based Route Guard for RVU CAREER HUB
  * 
  * Enforces:
- * 1. Authenticated session exists (redirects to /login if unauthenticated)
- * 2. User possesses one of the `allowedRoles`
- * 3. If an authenticated user enters a URL belonging to another role:
- *    - Student attempting /recruiter or /management -> renders AccessRestrictedView and redirects to /student
- *    - Recruiter attempting /student or /management -> renders AccessRestrictedView and redirects to /recruiter
- *    - Placement Cell attempting /student or /recruiter -> renders AccessRestrictedView and redirects to /management
- * 4. Never renders protected UI to unauthorized roles.
+ * 1. Auth Loading Gate: While authentication is initializing or hydrating, renders AuthLoadingScreen.
+ *    NEVER redirects to login during initialization.
+ * 2. Unauthenticated Gate: Redirects unauthenticated users to /login only after initialization completes.
+ * 3. Inactive Account Gate: Shows AccountStatusView for inactive accounts.
+ * 4. Unprovisioned Role Gate: Shows AccountStatusView if role is missing or invalid.
+ * 5. Strict Role Isolation: Blocks cross-portal access (e.g. Student -> /recruiter) with AccessRestrictedView.
+ * 6. Never renders protected UI to unauthenticated or unauthorized users.
  */
 export const RoleRoute: React.FC<RoleRouteProps> = ({
   allowedRoles,
@@ -30,57 +33,36 @@ export const RoleRoute: React.FC<RoleRouteProps> = ({
   onNavigatePortal,
   children
 }) => {
-  const { isAuthenticated, user, isVerifyingAuth, mustChangePassword } = useAuth();
+  const { session, user, role, isInitialized, isLoading, mustChangePassword } = useAuth();
 
+  const activeRole = role || user?.role || null;
   const authorizedHome = 
-    user?.role === 'student' 
+    activeRole === 'student' 
       ? '/student' 
-      : user?.role === 'recruiter' 
+      : activeRole === 'recruiter' 
       ? '/recruiter' 
       : '/management';
 
+  // Navigate unauthenticated users to /login ONLY after initialization is complete
   useEffect(() => {
-    if (isVerifyingAuth) return;
+    if (!isInitialized || isLoading) return;
 
-    // 1. Unauthenticated -> redirect to login with suggested role
-    if (!isAuthenticated || !user) {
+    if (!session || !user) {
       onNavigatePortal('/login');
-      return;
     }
-  }, [isAuthenticated, user, isVerifyingAuth, onNavigatePortal]);
+  }, [isInitialized, isLoading, session, user, onNavigatePortal]);
 
-  // 1. Loading / Verification State (No content flash)
-  if (isVerifyingAuth) {
-    return (
-      <div className="min-h-screen bg-[#101A22] text-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-[#19252F] border border-[#CCAA68]/30 flex items-center justify-center p-2 mb-4 shadow-xl animate-pulse">
-          <img 
-            src="/src/assets/rvu-logo-gold.svg" 
-            alt="RV University" 
-            className="w-full h-full object-contain" 
-          />
-        </div>
-        <div className="text-sm font-bold font-display text-white tracking-wide">
-          RV UNIVERSITY • RVU CAREER HUB
-        </div>
-        <div className="text-xs text-[#D8B978] font-mono mt-1">
-          Verifying RVU Career Hub access...
-        </div>
-        <div className="w-6 h-6 rounded-full border-2 border-[#CCAA68] border-t-transparent animate-spin mt-4" />
-      </div>
-    );
+  // 1. Loading / Hydration State (Prevents redirect loop & content flash)
+  if (!isInitialized || isLoading) {
+    return <AuthLoadingScreen message="Securing your workspace..." />;
   }
 
-  // 2. Unauthenticated Gate
-  if (!isAuthenticated || !user) {
-    return (
-      <div className="min-h-screen bg-[#101A22] flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-[#CCAA68] border-t-transparent animate-spin" />
-      </div>
-    );
+  // 2. Unauthenticated Gate (Redirect is in flight via useEffect)
+  if (!session || !user) {
+    return <AuthLoadingScreen message="Redirecting to login..." />;
   }
 
-  // 3. Inactive Account Gate (Requirement 14)
+  // 3. Inactive Account Gate
   if (user.isActive === false) {
     return (
       <AccountStatusView
@@ -90,8 +72,8 @@ export const RoleRoute: React.FC<RoleRouteProps> = ({
     );
   }
 
-  // 4. Missing / Unprovisioned Role Gate (Requirement 15)
-  if (!user.role || !['student', 'recruiter', 'placement'].includes(user.role)) {
+  // 4. Missing / Unprovisioned Role Gate
+  if (!activeRole || !validRoles.includes(activeRole)) {
     return (
       <AccountStatusView
         status="unprovisioned"
@@ -100,35 +82,29 @@ export const RoleRoute: React.FC<RoleRouteProps> = ({
     );
   }
 
-  // 5. Unauthorized Cross-Portal Access Attempt -> Render Access Restricted View
-  if (!allowedRoles.includes(user.role)) {
+  // 5. Unauthorized Cross-Portal Access Attempt -> Render AccessRestrictedView
+  if (!allowedRoles.includes(activeRole)) {
     return (
       <AccessRestrictedView
-        currentRole={user.role}
+        currentRole={activeRole}
         attemptedPath={currentPath}
         onNavigateHome={() => onNavigatePortal(authorizedHome)}
       />
     );
   }
 
-  // 3. Mandatory First-Login Password Change Gate
+  // 6. Mandatory First-Login Password Change Gate
   if (mustChangePassword) {
-    const portalHome = 
-      user.role === 'student' 
-        ? '/student' 
-        : user.role === 'recruiter' 
-        ? '/recruiter' 
-        : '/management';
     return (
       <FirstLoginPasswordModal
         onPasswordChanged={() => {
-          onNavigatePortal(portalHome);
+          onNavigatePortal(authorizedHome);
         }}
       />
     );
   }
 
-  // Authorized: render protected portal workspace
+  // 7. Authorized: render protected portal workspace
   return <>{children}</>;
 };
 

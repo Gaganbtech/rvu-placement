@@ -1,8 +1,20 @@
+import type { Session as SupabaseSession } from '@supabase/supabase-js';
+import type { ProfileRow } from './database';
+
 // Canonical User Roles for RVU CAREER HUB
 export type UserRole = 'student' | 'recruiter' | 'placement';
 
 // Backward-compatible role alias accepting legacy strings
 export type AuthRole = UserRole | 'placement-cell' | 'management';
+
+export interface AuthState {
+  session: SupabaseSession | null;
+  user: AuthUser | null;
+  profile: ProfileRow | null;
+  role: UserRole | null;
+  isLoading: boolean;
+  isInitialized: boolean;
+}
 
 export interface AuthUser {
   id: string; // auth.users id
@@ -135,6 +147,8 @@ export interface SecurityAuditRecord {
 export interface LoginResult {
   success: boolean;
   user?: AuthUser;
+  session?: SupabaseSession | null;
+  profile?: ProfileRow | null;
   redirectRoute?: string;
   error?: string;
 }
