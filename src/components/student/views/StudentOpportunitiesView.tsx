@@ -284,20 +284,41 @@ export const StudentOpportunitiesView: React.FC<StudentOpportunitiesViewProps> =
                         {opp.companyName.charAt(0)}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-semibold text-rvu-muted">
-                            {opp.companyName}
-                          </span>
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/5 text-emerald-400 border border-emerald-500/20">
-                            CAR Verified
-                          </span>
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-gold/10 text-gold border border-gold/20">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          {(() => {
+                            const ctcNum = parseFloat(opp.ctcLpa.replace(/[^0-9.]/g, '')) || 12;
+                            const tier = ctcNum >= 40 
+                              ? { label: 'MARQUEE', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' }
+                              : ctcNum >= 20
+                              ? { label: 'SUPER DREAM', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40' }
+                              : ctcNum >= 10
+                              ? { label: 'DREAM', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
+                              : { label: 'CORE', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' };
+                            return (
+                              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border font-bold ${tier.color}`}>
+                                {tier.label}
+                              </span>
+                            );
+                          })()}
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-gold-faint text-gold border border-gold/20 font-semibold uppercase">
                             {opp.type}
                           </span>
+                          {opp.isEligible ? (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                              ✓ Eligible
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold">
+                              ✕ Min CGPA {opp.minCgpa}
+                            </span>
+                          )}
                         </div>
                         <h2 className="text-lg font-bold text-white font-display group-hover:text-gold transition-colors leading-tight truncate">
                           {opp.role}
                         </h2>
+                        <div className="text-xs text-rvu-muted font-mono mt-0.5">
+                          {opp.companyName} • {opp.location.split('(')[0]}
+                        </div>
                       </div>
                     </div>
 

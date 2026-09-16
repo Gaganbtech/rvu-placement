@@ -3,21 +3,13 @@ import {
   LayoutDashboard, 
   Briefcase, 
   FileText, 
-  Building, 
-  Compass, 
-  Sparkles, 
-  Calendar, 
-  BookOpen, 
   FolderLock, 
   UserCheck, 
   Bell, 
-  LifeBuoy, 
   ArrowLeft, 
   LogOut,
-  Award,
   ShieldCheck,
-  X,
-  Settings
+  X
 } from 'lucide-react';
 import { RVU_BRAND } from '../../data/rvu';
 import { useAuth } from '../../context/AuthContext';
@@ -45,20 +37,15 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
 
   const navGroups = [
     {
-      title: 'OVERVIEW',
+      title: 'CORE PORTAL',
       items: [
         {
           label: 'Dashboard',
           route: '/student',
           icon: <LayoutDashboard className="w-4 h-4" />
-        }
-      ]
-    },
-    {
-      title: 'CAREER',
-      items: [
+        },
         {
-          label: 'Opportunities',
+          label: 'Opportunities & Drives',
           route: '/student/opportunities',
           icon: <Briefcase className="w-4 h-4" />
         },
@@ -68,57 +55,12 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
           icon: <FileText className="w-4 h-4" />
         },
         {
-          label: 'Placement Drives',
-          route: '/student/drives',
-          icon: <Building className="w-4 h-4" />
-        },
-        {
-          label: 'My Offers',
-          route: '/student/offers',
-          icon: <Award className="w-4 h-4" />
-        }
-      ]
-    },
-    {
-      title: 'PREPARE',
-      items: [
-        {
-          label: 'Career Preparation',
-          route: '/student/preparation',
-          icon: <Compass className="w-4 h-4" />
-        },
-        {
-          label: 'Skills Intelligence',
-          route: '/student/skills',
-          icon: <Sparkles className="w-4 h-4" />
-        },
-        {
-          label: 'Career Resources',
-          route: '/student/resources',
-          icon: <BookOpen className="w-4 h-4" />
-        }
-      ]
-    },
-    {
-      title: 'ORGANIZE',
-      items: [
-        {
-          label: 'Placement Calendar',
-          route: '/student/calendar',
-          icon: <Calendar className="w-4 h-4" />
-        },
-        {
-          label: 'Document Vault',
+          label: 'Resume & Documents',
           route: '/student/documents',
           icon: <FolderLock className="w-4 h-4" />
-        }
-      ]
-    },
-    {
-      title: 'ACCOUNT',
-      items: [
+        },
         {
-          label: 'Student Profile',
+          label: 'My Profile',
           route: '/student/profile',
           icon: <UserCheck className="w-4 h-4" />
         },
@@ -127,16 +69,6 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
           route: '/student/notifications',
           icon: <Bell className="w-4 h-4" />,
           badge: unreadNotifications > 0 ? unreadNotifications : undefined
-        },
-        {
-          label: 'Support Desk',
-          route: '/student/support',
-          icon: <LifeBuoy className="w-4 h-4" />
-        },
-        {
-          label: 'Settings',
-          route: '/student/settings',
-          icon: <Settings className="w-4 h-4" />
         }
       ]
     }

@@ -5,10 +5,12 @@ import {
   CheckCircle2,
   ChevronRight,
   CheckSquare,
-  Square
+  Square,
+  Download
 } from 'lucide-react';
 import type { PlatformStoreState } from '../../../data/platform/studentStore';
 import type { ApplicationStage } from '../../../data/platform/types';
+import { triggerFileDownload, generateSampleResumeDataUrl } from '../../../utils/fileStorage';
 
 interface RecruiterApplicationsViewProps {
   store: PlatformStoreState;
@@ -287,6 +289,19 @@ export const RecruiterApplicationsView: React.FC<RecruiterApplicationsViewProps>
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0 self-end md:self-auto">
+                      <button
+                        onClick={() => {
+                          const skillNames = cand?.skills?.map(s => typeof s === 'string' ? s : s.name) || ['React', 'TypeScript', 'System Design'];
+                          const dataUrl = app.resumeDataUrl || generateSampleResumeDataUrl(cand?.name || 'RVU Student', cand?.programme || 'B.Tech CSE', skillNames);
+                          const fileName = app.resumeFileName || `${cand?.name?.replace(/\s+/g, '_') || 'Candidate'}_Resume.pdf`;
+                          triggerFileDownload(dataUrl, fileName);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs border border-emerald-500/30 font-medium transition-colors flex items-center gap-1.5"
+                        title="Download Candidate Resume"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Resume</span>
+                      </button>
                       <button
                         onClick={() => onNavigate(`/recruiter/candidates/${app.studentId}`)}
                         className="px-3 py-1.5 rounded-lg bg-[#20303A] hover:bg-[#20303A]/80 text-gray-200 text-xs border border-white/10 font-medium transition-colors"

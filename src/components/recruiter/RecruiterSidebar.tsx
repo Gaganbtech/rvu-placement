@@ -5,19 +5,8 @@ import {
   PlusCircle,
   FileText,
   Users,
-  CheckSquare,
-  Code2,
-  Calendar,
-  Building,
   Award,
-  MessageSquare,
-  Bell,
-  BookOpen,
   Building2,
-  UserCheck,
-  BarChart3,
-  User,
-  Settings,
   ArrowLeft,
   GraduationCap,
   ShieldCheck,
@@ -39,9 +28,9 @@ interface RecruiterSidebarProps {
   onRoleChange: (role: RecruiterRole) => void;
   applicationsCount: number;
   candidatesCount: number;
-  interviewsCount: number;
-  unreadMessagesCount: number;
-  unreadNotificationsCount: number;
+  interviewsCount?: number;
+  unreadMessagesCount?: number;
+  unreadNotificationsCount?: number;
   onNavigate: (route: string) => void;
   onBackToPublic: () => void;
   isOpenMobile?: boolean;
@@ -72,9 +61,6 @@ export const RecruiterSidebar: React.FC<RecruiterSidebarProps> = ({
   onRoleChange,
   applicationsCount,
   candidatesCount,
-  interviewsCount,
-  unreadMessagesCount,
-  unreadNotificationsCount,
   onNavigate,
   onBackToPublic,
   isOpenMobile = false,
@@ -86,7 +72,7 @@ export const RecruiterSidebar: React.FC<RecruiterSidebarProps> = ({
 
   const navSections: NavSection[] = [
     {
-      title: 'Overview',
+      title: 'HIRING PORTAL',
       items: [
         {
           label: 'Dashboard',
@@ -95,23 +81,18 @@ export const RecruiterSidebar: React.FC<RecruiterSidebarProps> = ({
           exact: true
         },
         {
-          label: 'Opportunities',
+          label: 'Job Opportunities',
           route: '/recruiter/opportunities',
           icon: <Briefcase className="w-4 h-4" />
         },
         {
-          label: 'Post Opportunity',
+          label: 'Post New Opportunity',
           route: '/recruiter/opportunities/new',
           icon: <PlusCircle className="w-4 h-4" />,
           highlight: true
-        }
-      ]
-    },
-    {
-      title: 'Hiring Pipeline',
-      items: [
+        },
         {
-          label: 'Applications',
+          label: 'Candidate Applications',
           route: '/recruiter/applications',
           icon: <FileText className="w-4 h-4" />,
           badge: applicationsCount > 0 ? applicationsCount : undefined,
@@ -125,85 +106,14 @@ export const RecruiterSidebar: React.FC<RecruiterSidebarProps> = ({
           badgeColor: 'bg-white/10 text-white border border-white/20'
         },
         {
-          label: 'Shortlist',
-          route: '/recruiter/shortlist',
-          icon: <CheckSquare className="w-4 h-4" />
-        },
-        {
-          label: 'Assessments',
-          route: '/recruiter/assessments',
-          icon: <Code2 className="w-4 h-4" />
-        },
-        {
-          label: 'Interviews & Evals',
-          route: '/recruiter/interviews',
-          icon: <Calendar className="w-4 h-4" />,
-          badge: interviewsCount > 0 ? interviewsCount : undefined,
-          badgeColor: 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-        },
-        {
-          label: 'Campus Drives',
-          route: '/recruiter/drives',
-          icon: <Building className="w-4 h-4" />
-        },
-        {
-          label: 'Offers',
+          label: 'Offer Management',
           route: '/recruiter/offers',
           icon: <Award className="w-4 h-4" />
-        }
-      ]
-    },
-    {
-      title: 'Collaboration',
-      items: [
-        {
-          label: 'Messages',
-          route: '/recruiter/messages',
-          icon: <MessageSquare className="w-4 h-4" />,
-          badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
-          badgeColor: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
         },
-        {
-          label: 'Notifications',
-          route: '/recruiter/notifications',
-          icon: <Bell className="w-4 h-4" />,
-          badge: unreadNotificationsCount > 0 ? unreadNotificationsCount : undefined,
-          badgeColor: 'bg-[#CCAA68] text-[#101A22] font-semibold'
-        },
-        {
-          label: 'RVU Policy & Guides',
-          route: '/recruiter/resources',
-          icon: <BookOpen className="w-4 h-4" />
-        }
-      ]
-    },
-    {
-      title: 'Company & Admin',
-      items: [
         {
           label: 'Company Profile',
-          route: '/recruiter/company',
-          icon: <Building2 className="w-4 h-4" />
-        },
-        {
-          label: 'Recruitment Team',
-          route: '/recruiter/team',
-          icon: <UserCheck className="w-4 h-4" />
-        },
-        {
-          label: 'Talent Analytics',
-          route: '/recruiter/analytics',
-          icon: <BarChart3 className="w-4 h-4" />
-        },
-        {
-          label: 'My Profile',
           route: '/recruiter/profile',
-          icon: <User className="w-4 h-4" />
-        },
-        {
-          label: 'Settings',
-          route: '/recruiter/settings',
-          icon: <Settings className="w-4 h-4" />
+          icon: <Building2 className="w-4 h-4" />
         }
       ]
     }

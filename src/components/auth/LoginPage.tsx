@@ -30,7 +30,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onLoginSuccess,
   onNavigateForgotPassword
 }) => {
-  const { login, isDemoAuth } = useAuth();
+  const { login } = useAuth();
   
   const [selectedRole, setSelectedRole] = useState<AuthRole>(initialRole);
   const [identifier, setIdentifier] = useState(() => authService.getRememberedIdentifier() || '');
@@ -197,20 +197,88 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </div>
             </div>
 
-            {/* Dev Mode Notification Badge */}
-            {isDemoAuth && (
-              <div className="p-3 rounded-xl bg-[#19252F] border border-amber-500/30 flex items-start gap-2.5 text-left text-xs">
-                <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-amber-300 font-mono text-[11px] uppercase tracking-wider">
-                    LOCAL DEVELOPMENT AUTH MODE
-                  </div>
-                  <div className="text-[#AEB7BC] text-[11px] mt-0.5">
-                    For local testing, enter any valid User ID / email and any non-empty password to log in directly.
-                  </div>
-                </div>
+            {/* 1-Click Instant Demo Login Buttons */}
+            <div className="p-4 rounded-xl bg-[#19252F] border border-[#CCAA68]/30 space-y-3 text-left">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#CCAA68]" />
+                <span className="text-xs font-bold text-[#D8B978] font-mono uppercase tracking-wider">
+                  Instant 1-Click Demo Logins
+                </span>
               </div>
-            )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setSelectedRole('student');
+                    setIdentifier('aarav.sharma23@rvu.edu.in');
+                    setPassword('welcome2placement');
+                    const res = await login({
+                      identifier: 'aarav.sharma23@rvu.edu.in',
+                      password: 'welcome2placement',
+                      role: 'student'
+                    });
+                    if (res.success && res.user) onLoginSuccess('student');
+                  }}
+                  className="p-2.5 rounded-lg bg-[#101A22] hover:bg-[#CCAA68]/20 border border-[#CCAA68]/30 text-left transition-all group"
+                >
+                  <div className="text-[11px] font-bold text-white group-hover:text-[#D8B978] flex items-center gap-1.5">
+                    <GraduationCap className="w-3.5 h-3.5 text-[#CCAA68]" />
+                    <span>Student</span>
+                  </div>
+                  <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
+                    aarav.sharma23@rvu.edu.in
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setSelectedRole('recruiter');
+                    setIdentifier('recruiter@google.com');
+                    setPassword('welcome2placement');
+                    const res = await login({
+                      identifier: 'recruiter@google.com',
+                      password: 'welcome2placement',
+                      role: 'recruiter'
+                    });
+                    if (res.success && res.user) onLoginSuccess('recruiter');
+                  }}
+                  className="p-2.5 rounded-lg bg-[#101A22] hover:bg-[#CCAA68]/20 border border-[#CCAA68]/30 text-left transition-all group"
+                >
+                  <div className="text-[11px] font-bold text-white group-hover:text-[#D8B978] flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-[#CCAA68]" />
+                    <span>Recruiter</span>
+                  </div>
+                  <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
+                    recruiter@google.com
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setSelectedRole('placement-cell');
+                    setIdentifier('admin@rvu.edu.in');
+                    setPassword('welcome2placement');
+                    const res = await login({
+                      identifier: 'admin@rvu.edu.in',
+                      password: 'welcome2placement',
+                      role: 'placement-cell'
+                    });
+                    if (res.success && res.user) onLoginSuccess('placement-cell');
+                  }}
+                  className="p-2.5 rounded-lg bg-[#101A22] hover:bg-[#CCAA68]/20 border border-[#CCAA68]/30 text-left transition-all group"
+                >
+                  <div className="text-[11px] font-bold text-white group-hover:text-[#D8B978] flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#CCAA68]" />
+                    <span>Placement Cell</span>
+                  </div>
+                  <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
+                    admin@rvu.edu.in
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Credential Authentication Card */}

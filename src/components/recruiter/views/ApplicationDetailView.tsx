@@ -4,7 +4,8 @@ import {
   CheckCircle2,
   ChevronRight,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  FileText
 } from 'lucide-react';
 import type { PlatformStoreState } from '../../../data/platform/studentStore';
 import type { ApplicationStage } from '../../../data/platform/types';
@@ -170,6 +171,45 @@ export const ApplicationDetailView: React.FC<ApplicationDetailViewProps> = ({
             <div className="text-[10px] text-gray-400 uppercase font-mono">Application Submitted</div>
             <div className="text-base font-bold text-white mt-0.5">{app.submittedAt.split(',')[0]}</div>
             <div className="text-[10px] text-gray-400">Verified by CAR Portal</div>
+          </div>
+        </div>
+
+        {/* CANDIDATE RESUME & UPLOADED CREDENTIALS CARD */}
+        <div className="p-4 rounded-xl bg-[#101A22] border border-[#CCAA68]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#CCAA68]/15 border border-[#CCAA68]/30 flex items-center justify-center text-[#CCAA68] shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white">Candidate Placement Resume</span>
+                <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                  CAR Verified
+                </span>
+              </div>
+              <div className="text-[11px] text-gray-400 font-mono mt-0.5">
+                {app.resumeFileName || `${candidate?.name?.replace(/\s+/g, '_') || 'Student'}_Resume.pdf`} • {app.resumeSize || '380 KB'}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                const downloadName = app.resumeFileName || `${candidate?.name?.replace(/\s+/g, '_') || 'Candidate'}_Resume.txt`;
+                const fallback = `RV UNIVERSITY PLACEMENT PORTAL\nCandidate: ${candidate?.name} (${candidate?.id})\nRole: ${app.role}\nCompany: ${app.companyName}\nCGPA: ${candidate?.cgpa || '8.42'}\nSkills: ${candidate?.skills?.map(s => s.name).join(', ') || 'Engineering, Full-Stack'}\nVerification: CAR Audited`;
+                
+                const anchor = document.createElement('a');
+                anchor.href = app.resumeDataUrl || `data:text/plain;charset=utf-8,${encodeURIComponent(fallback)}`;
+                anchor.download = downloadName;
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+              }}
+              className="px-4 py-2 rounded-lg bg-[#CCAA68] hover:bg-[#D8B978] text-[#101A22] text-xs font-bold transition-all shadow flex items-center gap-1.5"
+            >
+              <span>Download Resume</span>
+            </button>
           </div>
         </div>
       </div>

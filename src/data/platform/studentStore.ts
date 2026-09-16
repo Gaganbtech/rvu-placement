@@ -788,6 +788,9 @@ class PlatformStore {
     const now = new Date();
     const dateFormatted = `${now.getDate()} Sep 2026, ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
+    // Find active resume
+    const activeResume = this.documents.find(d => d.type === 'RESUME' && d.isActiveForApplications) || this.documents.find(d => d.type === 'RESUME');
+
     const newApplication: Application = {
       id: newAppId,
       studentId: student.id,
@@ -803,6 +806,9 @@ class PlatformStore {
       stage: 'APPLIED',
       submittedAt: dateFormatted,
       updatedAt: dateFormatted,
+      resumeFileName: activeResume?.fileName || `${student.name.replace(/\s+/g, '_')}_Resume.pdf`,
+      resumeDataUrl: activeResume?.fileDataUrl,
+      resumeSize: activeResume?.fileSize || '380 KB',
       timeline: [
         { stage: 'APPLIED', label: 'Application Submitted', timestamp: `${now.getDate()} Sep 2026`, completed: true, active: false, remarks: 'Submitted to RVU Placement & Career Management System' },
         { stage: 'UNDER_REVIEW', label: 'CAR Verification & Profile Screening', timestamp: 'In Progress', completed: false, active: true, remarks: 'Awaiting recruiter review alongside CAR compliance check' }
@@ -886,7 +892,7 @@ class PlatformStore {
     return newTicket;
   }
 
-  public uploadResume(fileName: string, fileSize: string): StudentDocument {
+  public uploadResume(fileName: string, fileSize: string, dataUrl?: string): StudentDocument {
     const student = this.getStudent();
     this.documents = this.documents.map(d => d.type === 'RESUME' ? { ...d, isActiveForApplications: false } : d);
 
@@ -894,21 +900,54 @@ class PlatformStore {
       id: `DOC-${Date.now()}`,
       studentId: student.id,
       type: 'RESUME',
-      title: 'Active Placement Resume (Updated)',
+      title: 'Active Placement Resume (Uploaded)',
       fileName,
       fileSize,
-      uploadedDate: 'Just now',
+      uploadedDate: `${new Date().getDate()} Sep 2026`,
       status: 'VERIFIED',
       isActiveForApplications: true,
-      downloadUrl: '#'
+      downloadUrl: '#',
+      fileDataUrl: dataUrl
     };
 
     this.documents = [newDoc, ...this.documents];
     this.updateStudent(student.id, {
-      readinessBreakdown: { ...student.readinessBreakdown, resume: 92 }
+      readinessBreakdown: { ...student.readinessBreakdown, resume: 95 }
     });
 
     this.logAction('Resume Uploaded', 'StudentDocument', newDoc.id, `Uploaded ${fileName} for ${student.name}`);
+    this.notify();
+    return newDoc;
+  }
+
+  public uploadDocument(
+    type: 'RESUME' | 'TRANSCRIPT' | 'CERTIFICATE' | 'PORTFOLIO' | 'GOVT_ID',
+    title: string,
+    fileName: string,
+    fileSize: string,
+    dataUrl?: string
+  ): StudentDocument {
+    const student = this.getStudent();
+    if (type === 'RESUME') {
+      this.documents = this.documents.map(d => d.type === 'RESUME' ? { ...d, isActiveForApplications: false } : d);
+    }
+
+    const newDoc: StudentDocument = {
+      id: `DOC-${Date.now()}`,
+      studentId: student.id,
+      type,
+      title,
+      fileName,
+      fileSize,
+      uploadedDate: `${new Date().getDate()} Sep 2026`,
+      status: 'VERIFIED',
+      isActiveForApplications: type === 'RESUME',
+      downloadUrl: '#',
+      fileDataUrl: dataUrl
+    };
+
+    this.documents = [newDoc, ...this.documents];
+    this.logAction('Document Uploaded', 'StudentDocument', newDoc.id, `Uploaded ${type}: ${fileName} for ${student.name}`);
     this.notify();
     return newDoc;
   }
@@ -1622,7 +1661,8 @@ export function usePlatformStore() {
 
     // Documents & Calendar
     documents: platformStore.getDocuments(),
-    uploadResume: (fName: string, fSize: string) => platformStore.uploadResume(fName, fSize),
+    uploadResume: (fName: string, fSize: string, dataUrl?: string) => platformStore.uploadResume(fName, fSize, dataUrl),
+    uploadDocument: (type: any, title: string, fName: string, fSize: string, dataUrl?: string) => platformStore.uploadDocument(type, title, fName, fSize, dataUrl),
     deleteStudentDocument: (id: string) => platformStore.deleteStudentDocument(id),
     replaceStudentDocument: (id: string, name: string, size: string) => platformStore.replaceStudentDocument(id, name, size),
     calendarEvents: platformStore.getCalendarEvents(),

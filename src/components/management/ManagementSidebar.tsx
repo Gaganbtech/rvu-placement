@@ -3,25 +3,12 @@ import {
   LayoutDashboard,
   Users,
   Upload,
-  History,
-  UserPlus,
-  Building2,
-  Briefcase,
   Layers,
-  FileCheck,
-  CalendarCheck,
-  Award,
   Megaphone,
-  LifeBuoy,
-  BarChart3,
-  FileSpreadsheet,
-  BookOpen,
-  History as AuditIcon,
-  Settings,
+  Sparkles,
   ArrowLeft,
   GraduationCap,
   X,
-  Building,
   LogOut
 } from 'lucide-react';
 import { RVU_BRAND } from '../../data/rvu';
@@ -32,9 +19,9 @@ import { SignOutConfirmDialog } from '../auth/SignOutConfirmDialog';
 interface ManagementSidebarProps {
   currentSubroute: string;
   currentRole: UserRole;
-  pendingOffersCount: number;
-  pendingApprovalsCount: number;
-  openTicketsCount: number;
+  pendingOffersCount?: number;
+  pendingApprovalsCount?: number;
+  openTicketsCount?: number;
   onNavigate: (route: string) => void;
   onBackToPublic: () => void;
   isOpenMobile?: boolean;
@@ -58,9 +45,6 @@ interface NavSection {
 export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
   currentSubroute,
   currentRole,
-  pendingOffersCount = 0,
-  pendingApprovalsCount = 0,
-  openTicketsCount = 0,
   onNavigate,
   onBackToPublic,
   isOpenMobile = false,
@@ -70,135 +54,39 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
   const { user, logout } = useAuth();
   const navSections: NavSection[] = [
     {
-      title: 'Overview',
+      title: 'PLACEMENT OPERATIONS',
       items: [
         {
-          label: 'Command Dashboard',
+          label: 'Placement Analytics',
           route: '/management',
           icon: <LayoutDashboard className="w-4 h-4" />,
           exact: true
-        }
-      ]
-    },
-    {
-      title: 'Student Cohort',
-      items: [
+        },
         {
-          label: 'Student Master',
+          label: 'Student Master & Resumes',
           route: '/management/students',
           icon: <Users className="w-4 h-4" />,
           exact: true
         },
         {
-          label: 'Excel Import',
+          label: 'Excel Roster Upload',
           route: '/management/students/import',
           icon: <Upload className="w-4 h-4" />
         },
         {
-          label: 'Import History',
-          route: '/management/students/import-history',
-          icon: <History className="w-4 h-4" />
-        },
-        {
-          label: 'Enroll Student',
-          route: '/management/students/new',
-          icon: <UserPlus className="w-4 h-4" />
-        }
-      ]
-    },
-    {
-      title: 'Corporate & Industry',
-      items: [
-        {
-          label: 'Companies Directory',
-          route: '/management/companies',
-          icon: <Building2 className="w-4 h-4" />
-        },
-        {
-          label: 'Recruiter Accounts',
-          route: '/management/recruiters',
-          icon: <Briefcase className="w-4 h-4" />,
-          badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : undefined,
-          badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-        }
-      ]
-    },
-    {
-      title: 'Placement Operations',
-      items: [
-        {
-          label: 'Placement Drives',
+          label: 'Drives & Opportunities',
           route: '/management/drives',
           icon: <Layers className="w-4 h-4" />
         },
         {
-          label: 'Opportunities Desk',
-          route: '/management/opportunities',
-          icon: <Building className="w-4 h-4" />
-        },
-        {
-          label: 'Applications Pipeline',
-          route: '/management/applications',
-          icon: <FileCheck className="w-4 h-4" />
-        },
-        {
-          label: 'Interviews Schedule',
-          route: '/management/interviews',
-          icon: <CalendarCheck className="w-4 h-4" />
-        },
-        {
-          label: 'Offer Verification',
-          route: '/management/offers',
-          icon: <Award className="w-4 h-4" />,
-          badge: pendingOffersCount > 0 ? pendingOffersCount : undefined,
-          badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-        }
-      ]
-    },
-    {
-      title: 'Communications',
-      items: [
-        {
-          label: 'Announcements',
+          label: 'Announcements & Circulars',
           route: '/management/announcements',
           icon: <Megaphone className="w-4 h-4" />
         },
         {
-          label: 'Helpdesk Tickets',
-          route: '/management/support',
-          icon: <LifeBuoy className="w-4 h-4" />,
-          badge: openTicketsCount > 0 ? openTicketsCount : undefined,
-          badgeColor: 'bg-gold/20 text-gold border-gold/30'
-        }
-      ]
-    },
-    {
-      title: 'Intelligence & Audit',
-      items: [
-        {
-          label: 'Placement Analytics',
-          route: '/management/analytics',
-          icon: <BarChart3 className="w-4 h-4" />
-        },
-        {
-          label: 'Institutional Reports',
-          route: '/management/reports',
-          icon: <FileSpreadsheet className="w-4 h-4" />
-        },
-        {
-          label: 'Policy & Resources',
-          route: '/management/resources',
-          icon: <BookOpen className="w-4 h-4" />
-        },
-        {
-          label: 'Audit Trail',
-          route: '/management/audit-log',
-          icon: <AuditIcon className="w-4 h-4" />
-        },
-        {
-          label: 'Policy Settings',
-          route: '/management/settings',
-          icon: <Settings className="w-4 h-4" />
+          label: 'AI Knowledge & Pvt Docs',
+          route: '/management/rag-docs',
+          icon: <Sparkles className="w-4 h-4 text-[#CCAA68]" />
         }
       ]
     }

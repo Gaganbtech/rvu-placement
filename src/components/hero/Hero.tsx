@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Shield, Users, Briefcase } from 'lucide-react';
+import { ArrowRight, Shield, Users, Briefcase, GraduationCap, Building2, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { CircuitBackground } from '../ui/CircuitBackground';
 import { EcosystemPreview } from './EcosystemPreview';
@@ -8,11 +8,13 @@ import { RVU_BRAND } from '../../data/rvu';
 interface HeroProps {
   onOpenRecruiterModal: () => void;
   onExploreOpportunities: () => void;
+  onNavigatePortal?: (route: string) => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({
   onOpenRecruiterModal,
-  onExploreOpportunities
+  onExploreOpportunities,
+  onNavigatePortal = (route: string) => { window.location.hash = route; }
 }) => {
   return (
     <section 
@@ -28,35 +30,90 @@ export const Hero: React.FC<HeroProps> = ({
           {/* Left Hero Content Column (7 cols on lg) */}
           <div className="lg:col-span-7 flex flex-col items-start text-left">
             
-            {/* Small Eyebrow Label with Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-faint border border-gold/30 mb-6">
+            {/* Eyebrow Label with Modern Style Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gold/10 border border-gold/40 mb-6 backdrop-blur-sm">
               <span className="w-2 h-2 rounded-full bg-gold animate-ping" />
               <span className="text-xs font-semibold tracking-wider uppercase text-gold font-mono">
-                RV UNIVERSITY // CAREER & PLACEMENT HUB
+                RV UNIVERSITY // DIGITAL PLACEMENT & CAREER PLATFORM
               </span>
             </div>
 
-            {/* Main Heading */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-rvu-text font-display leading-[1.08] mb-6">
-              YOUR FUTURE <br />
-              <span className="text-gold-gradient">STARTS HERE.</span>
+            {/* Bold Main Heading */}
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white font-display leading-[1.12] mb-6">
+              Building <span className="text-gold-gradient">Careers</span>,<br />
+              Digitizing <span className="text-gold-gradient">RV University</span>,<br />
+              Revolutionizing <span className="text-white underline decoration-gold/60 underline-offset-8">Recruitments</span>.
             </h1>
 
             {/* Supporting Copy */}
-            <p className="text-base sm:text-lg lg:text-xl text-rvu-muted max-w-2xl font-normal leading-relaxed mb-5">
-              Connect with opportunities, build industry-ready skills, and take your next step with RV University's career ecosystem.
+            <p className="text-sm sm:text-base lg:text-lg text-rvu-muted max-w-2xl font-normal leading-relaxed mb-6">
+              The next-generation campus placement automation platform bringing together RVU academia, global recruiters, students, and alumni into a single verified ecosystem.
             </p>
 
-            {/* Official University Tagline as Gold-Highlighted Brand Statement */}
+            {/* University Tagline Badge */}
             <div className="mb-8 flex items-center gap-3">
               <div className="h-px w-8 bg-gold/50" />
-              <span className="text-lg sm:text-xl font-serif italic font-medium text-gold tracking-wide">
+              <span className="text-base sm:text-lg font-serif italic font-medium text-gold tracking-wide">
                 "{RVU_BRAND.tagline}"
               </span>
             </div>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto mb-10">
+            {/* Multi-Stakeholder Action Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mb-8">
+              {/* For Students */}
+              <button
+                onClick={() => onNavigatePortal('/student')}
+                className="p-3.5 rounded-xl bg-navy-card hover:bg-gold/15 border border-gold-border/60 hover:border-gold text-left transition-all group shadow-md"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white group-hover:text-gold">
+                    <GraduationCap className="w-4 h-4 text-gold" />
+                    <span>For Students</span>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-gold opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className="text-[11px] text-rvu-muted leading-tight">
+                  Launch Career OS, build verified vault & 1-click apply.
+                </p>
+              </button>
+
+              {/* For Employers */}
+              <button
+                onClick={() => onNavigatePortal('/recruiter')}
+                className="p-3.5 rounded-xl bg-navy-card hover:bg-gold/15 border border-gold-border/60 hover:border-gold text-left transition-all group shadow-md"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white group-hover:text-gold">
+                    <Building2 className="w-4 h-4 text-gold" />
+                    <span>For Employers</span>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-gold opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className="text-[11px] text-rvu-muted leading-tight">
+                  Post JDs, filter talent & download student resumes.
+                </p>
+              </button>
+
+              {/* For Placement Cell */}
+              <button
+                onClick={() => onNavigatePortal('/management')}
+                className="p-3.5 rounded-xl bg-navy-card hover:bg-gold/15 border border-gold-border/60 hover:border-gold text-left transition-all group shadow-md"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white group-hover:text-gold">
+                    <Shield className="w-4 h-4 text-gold" />
+                    <span>Placement Cell</span>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-gold opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className="text-[11px] text-rvu-muted leading-tight">
+                  SIS Excel sync, live drive ops & placement analytics.
+                </p>
+              </button>
+            </div>
+
+            {/* Primary Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mb-8">
               <Button
                 variant="primary"
                 size="lg"
@@ -64,7 +121,7 @@ export const Hero: React.FC<HeroProps> = ({
                 onClick={onExploreOpportunities}
                 className="w-full sm:w-auto justify-center font-bold tracking-wide uppercase text-xs sm:text-sm"
               >
-                EXPLORE OPPORTUNITIES
+                EXPLORE CAMPUS DRIVES
               </Button>
 
               <Button
@@ -75,25 +132,25 @@ export const Hero: React.FC<HeroProps> = ({
                 onClick={onOpenRecruiterModal}
                 className="w-full sm:w-auto justify-center font-bold tracking-wide uppercase text-xs sm:text-sm"
               >
-                RECRUIT AT RVU
+                EMPLOYER REGISTRATION
               </Button>
             </div>
 
-            {/* Scale / Value Statement based on verified RVU figures */}
-            <div className="pt-6 border-t border-gold-border/60 w-full flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-rvu-muted">
+            {/* Verified Scale Metrics */}
+            <div className="pt-5 border-t border-gold-border/40 w-full flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-rvu-muted font-mono">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-gold shrink-0" />
-                <span className="font-medium text-rvu-text">{RVU_BRAND.legacyYears}</span>
+                <Sparkles className="w-3.5 h-3.5 text-gold shrink-0" />
+                <span className="font-semibold text-white">Highest: ₹43.5 LPA (Aviatrix)</span>
               </div>
               <span className="hidden sm:inline text-gold-border">•</span>
               <div className="flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-gold shrink-0" />
-                <span className="font-medium text-rvu-text">9 Interdisciplinary Schools</span>
+                <Users className="w-3.5 h-3.5 text-gold shrink-0" />
+                <span className="font-semibold text-white">1,608 Eligible Talent</span>
               </div>
               <span className="hidden sm:inline text-gold-border">•</span>
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-gold shrink-0" />
-                <span className="font-medium text-rvu-text">250+ Recruiting Organizations</span>
+                <Briefcase className="w-3.5 h-3.5 text-gold shrink-0" />
+                <span className="font-semibold text-white">180+ Enterprise Recruiters</span>
               </div>
             </div>
 

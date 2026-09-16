@@ -1,25 +1,47 @@
 import React, { useState } from 'react';
 import { 
-  AI_INITIAL_CONVERSATION, 
-  AI_PROMPT_SUGGESTIONS, 
-  type AIMessage 
-} from '../../data/aiAssistantMock';
-import { 
   Bot, 
   User, 
   Send, 
-  Sparkles
+  Sparkles,
+  BookOpen,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { queryPlacementRAG, type RAGCitation } from '../../services/placementRagEngine';
+
+export interface AIMessageExtended {
+  id: string;
+  sender: 'user' | 'assistant';
+  text: string;
+  timestamp: string;
+  citations?: RAGCitation[];
+  isGuardrailTriggered?: boolean;
+}
 
 export const AICareerAssistant: React.FC = () => {
-  const [messages, setMessages] = useState<AIMessage[]>(AI_INITIAL_CONVERSATION);
+  const [messages, setMessages] = useState<AIMessageExtended[]>([
+    {
+      id: 'init-msg',
+      sender: 'assistant',
+      text: 'Hello! I am the **RV University Placement & Career AI Assistant** powered by domain-specific RAG.\n\nAsk me about **RVU salary tiers**, **Dream vs Marquee upgrade rules**, **academic eligibility**, or **technical interview roadmaps**.',
+      citations: [
+        {
+          id: 'tier-stratification-01',
+          title: 'RVU Salary Tier Classification',
+          sourceDoc: 'RVU CAR Policy Handbook 2026–27 §2.1',
+          relevanceScore: 1.0,
+          retrievalMethod: 'hybrid_rrf'
+        }
+      ],
+      timestamp: 'Just now'
+    }
+  ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  const handleSelectPrompt = (promptText: string, responseText: string, matches?: any) => {
-    // Append user message
-    const userMsg: AIMessage = {
+  const handleSelectPrompt = (promptText: string) => {
+    const userMsg: AIMessageExtended = {
       id: `msg-${Date.now()}`,
       sender: 'user',
       text: promptText,
@@ -29,18 +51,19 @@ export const AICareerAssistant: React.FC = () => {
     setMessages((prev) => [...prev, userMsg]);
     setIsTyping(true);
 
-    // Simulated realistic response timing
     setTimeout(() => {
-      const assistantMsg: AIMessage = {
+      const rag = queryPlacementRAG(promptText, 'public');
+      const assistantMsg: AIMessageExtended = {
         id: `msg-${Date.now() + 1}`,
         sender: 'assistant',
-        text: responseText,
-        timestamp: 'Just now',
-        matches: matches
+        text: rag.answer,
+        citations: rag.citations,
+        isGuardrailTriggered: rag.isGuardrailTriggered,
+        timestamp: 'Just now'
       };
       setMessages((prev) => [...prev, assistantMsg]);
       setIsTyping(false);
-    }, 600);
+    }, 500);
   };
 
   const handleCustomSubmit = (e: React.FormEvent) => {
@@ -50,7 +73,7 @@ export const AICareerAssistant: React.FC = () => {
     const query = inputValue;
     setInputValue('');
 
-    const userMsg: AIMessage = {
+    const userMsg: AIMessageExtended = {
       id: `msg-${Date.now()}`,
       sender: 'user',
       text: query,
@@ -61,15 +84,18 @@ export const AICareerAssistant: React.FC = () => {
     setIsTyping(true);
 
     setTimeout(() => {
-      const assistantMsg: AIMessage = {
+      const rag = queryPlacementRAG(query, 'public');
+      const assistantMsg: AIMessageExtended = {
         id: `msg-${Date.now() + 1}`,
         sender: 'assistant',
-        text: `Thank you for your inquiry regarding "${query}". Based on current RV University campus hiring parameters, the Placement Cell provides curated resources and mock evaluation slots. Please check the Career Resources hub or schedule an appointment with your faculty placement advisor.`,
+        text: rag.answer,
+        citations: rag.citations,
+        isGuardrailTriggered: rag.isGuardrailTriggered,
         timestamp: 'Just now'
       };
       setMessages((prev) => [...prev, assistantMsg]);
       setIsTyping(false);
-    }, 700);
+    }, 500);
   };
 
   return (
@@ -148,31 +174,34 @@ export const AICareerAssistant: React.FC = () => {
                   <div className={`max-w-xl rounded-2xl p-4 text-xs sm:text-sm ${
                     isUser
                       ? 'bg-gold-faint border border-gold text-rvu-text ml-8'
+                      : msg.isGuardrailTriggered
+                      ? 'bg-rose-950/40 border border-rose-500/40 text-rose-200 mr-8 space-y-2'
                       : 'bg-navy-card border border-gold-border text-rvu-text mr-8 space-y-3'
                   }`}>
+                    {msg.isGuardrailTriggered && (
+                      <div className="flex items-center gap-1.5 text-rose-400 font-semibold text-xs mb-1">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>Institutional Policy Guardrail</span>
+                      </div>
+                    )}
+
                     <p className="leading-relaxed whitespace-pre-line">{msg.text}</p>
 
-                    {/* Matched Opportunity Cards Preview */}
-                    {msg.matches && (
-                      <div className="space-y-2 pt-2 border-t border-gold-border/40">
-                        <span className="text-[11px] font-mono font-bold text-gold uppercase tracking-wider block">
-                          Identified Profile Matches:
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          {msg.matches.map((match, i) => (
-                            <div key={i} className="p-2.5 rounded-lg bg-navy-surface border border-gold/20 hover:border-gold/50 transition-colors">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-bold text-gold font-mono">
-                                  {match.matchScore}% Match
-                                </span>
-                              </div>
-                              <h4 className="text-xs font-bold text-rvu-text line-clamp-1 mb-0.5">
-                                {match.title}
-                              </h4>
-                              <p className="text-[10px] text-rvu-muted truncate">
-                                {match.company}
-                              </p>
-                            </div>
+                    {/* Verified Policy Citations */}
+                    {msg.citations && msg.citations.length > 0 && (
+                      <div className="space-y-1.5 pt-2.5 border-t border-gold-border/30">
+                        <div className="text-[10px] font-mono font-bold text-gold uppercase tracking-wider flex items-center gap-1">
+                          <BookOpen className="w-3 h-3" />
+                          <span>Grounded Policy Source:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {msg.citations.map((c) => (
+                            <span
+                              key={c.id}
+                              className="text-[10px] text-gray-300 bg-navy-surface px-2.5 py-1 rounded-md border border-gold/30 font-mono"
+                            >
+                              {c.title} • <span className="text-gold">{c.sourceDoc}</span>
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -195,7 +224,7 @@ export const AICareerAssistant: React.FC = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-gold animate-bounce" />
                   <span className="w-1.5 h-1.5 rounded-full bg-gold animate-bounce [animation-delay:0.2s]" />
                   <span className="w-1.5 h-1.5 rounded-full bg-gold animate-bounce [animation-delay:0.4s]" />
-                  <span className="ml-1 text-[11px] font-mono">Evaluating criteria...</span>
+                  <span className="ml-1 text-[11px] font-mono">Retrieving placement knowledge...</span>
                 </div>
               </div>
             )}
@@ -203,16 +232,21 @@ export const AICareerAssistant: React.FC = () => {
 
           {/* Interactive Preset Prompt Chips */}
           <div className="p-3 sm:px-6 bg-navy-surface/80 border-t border-gold-border/40 flex items-center gap-2 overflow-x-auto">
-            <span className="text-[10px] text-rvu-muted uppercase tracking-wider shrink-0">
-              Suggested:
+            <span className="text-[10px] text-rvu-muted uppercase tracking-wider shrink-0 font-mono">
+              Suggested RAG Queries:
             </span>
-            {AI_PROMPT_SUGGESTIONS.map((item) => (
+            {[
+              'What are the RVU salary tiers?',
+              'How does the Dream vs Marquee upgrade rule work?',
+              'What is the minimum CGPA and backlog policy?',
+              'What are the CAR ATS resume specifications?'
+            ].map((prompt, idx) => (
               <button
-                key={item.id}
-                onClick={() => handleSelectPrompt(item.prompt, item.response, item.matches)}
-                className="px-2.5 py-1 rounded-full text-xs bg-navy-card text-rvu-text border border-gold-border hover:border-gold hover:bg-gold-faint transition-all shrink-0 whitespace-nowrap"
+                key={idx}
+                onClick={() => handleSelectPrompt(prompt)}
+                className="px-2.5 py-1 rounded-full text-xs bg-navy-card text-rvu-text border border-gold-border hover:border-gold hover:bg-gold-faint transition-all shrink-0 whitespace-nowrap font-mono"
               >
-                {item.label}
+                {prompt}
               </button>
             ))}
           </div>

@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   FileText,
   ShieldCheck,
-  ExternalLink,
   ChevronRight,
   MessageSquare
 } from 'lucide-react';
@@ -216,13 +215,20 @@ export const CandidateProfileView: React.FC<CandidateProfileViewProps> = ({
                       <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono">
                         {doc.status}
                       </span>
-                      <a
-                        href={doc.downloadUrl}
-                        className="text-xs text-[#CCAA68] hover:underline flex items-center gap-1 font-medium"
+                      <button
+                        onClick={() => {
+                          const fallback = `RV UNIVERSITY OFFICIAL CANDIDATE DOSSIER\nCandidate: ${candidate.name} (${candidate.id})\nProgramme: ${candidate.programme}\nDocument: ${doc.title}\nStatus: Verified by CAR`;
+                          const anchor = document.createElement('a');
+                          anchor.href = doc.fileDataUrl || `data:text/plain;charset=utf-8,${encodeURIComponent(fallback)}`;
+                          anchor.download = doc.fileName;
+                          document.body.appendChild(anchor);
+                          anchor.click();
+                          document.body.removeChild(anchor);
+                        }}
+                        className="text-xs text-[#CCAA68] hover:underline flex items-center gap-1 font-semibold"
                       >
-                        <span>View</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                        <span>Download</span>
+                      </button>
                     </div>
                   </div>
                 ))}

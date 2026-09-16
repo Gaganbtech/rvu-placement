@@ -23,6 +23,8 @@ import { StudentLoginModal } from './components/stakeholders/StudentLoginModal';
 import { StudentLayout } from './components/student/StudentLayout';
 import { ManagementLayout } from './components/management/ManagementLayout';
 import { RecruiterLayout } from './components/recruiter/RecruiterLayout';
+import { PlacementAIChatbot } from './components/ai/PlacementAIChatbot';
+import type { UserRoleContext } from './services/placementRagEngine';
 
 // Schools Experience Views & Service
 import { SchoolDataService } from './services/schoolDataService';
@@ -154,169 +156,172 @@ const AppContent: React.FC = () => {
     }, 50);
   };
 
-  // 0. AUTHENTICATION & PORTAL SELECTOR ROUTES
-  if (currentRoute.startsWith('/auth/callback')) {
-    handleNavigatePortal('/login');
-    return null;
-  }
+  const getChatbotRole = (): UserRoleContext => {
+    if (currentRoute.startsWith('/student')) return 'student';
+    if (currentRoute.startsWith('/recruiter')) return 'recruiter';
+    if (currentRoute.startsWith('/management')) return 'management';
+    return 'public';
+  };
 
-  if (currentRoute.startsWith('/dev/auth-status')) {
-    return (
-      <DevAuthStatusPage
-        onNavigateHome={handleBackToPublic}
-        onNavigateLogin={() => handleNavigatePortal('/login')}
-      />
-    );
-  }
-
-  if (currentRoute.startsWith('/portals')) {
-    return (
-      <PortalSelector
-        onSelectPortal={(role) => handleNavigatePortal(`/login?role=${role}`)}
-        onBackToPublic={handleBackToPublic}
-      />
-    );
-  }
-
-  if (currentRoute.startsWith('/login')) {
-    const queryString = currentRoute.includes('?') ? currentRoute.split('?')[1] : '';
-    const searchParams = new URLSearchParams(queryString);
-    const roleParam = (searchParams.get('role') as AuthRole) || 'student';
-
-    return (
-      <LoginPage
-        key={roleParam}
-        initialRole={roleParam}
-        onBackToPortals={() => handleNavigatePortal('/portals')}
-        onLoginSuccess={(role) => {
-          const target = role === 'student' ? '/student' : role === 'recruiter' ? '/recruiter' : '/management';
-          handleNavigatePortal(target);
-        }}
-        onNavigateForgotPassword={() => handleNavigatePortal('/forgot-password')}
-      />
-    );
-  }
-
-  if (currentRoute.startsWith('/forgot-password')) {
-    return (
-      <ForgotPasswordPage
-        onBackToLogin={() => handleNavigatePortal('/login')}
-      />
-    );
-  }
-
-  // 1. STUDENT PORTAL (All /student and /student/* routes)
-  if (currentRoute.startsWith('/student')) {
-    return (
-      <RouteGuard
-        requiredRole="student"
-        currentPath={currentRoute}
-        onNavigateLogin={(role) => handleNavigatePortal(`/login?role=${role}`)}
-        onNavigatePortal={handleNavigatePortal}
-      >
-        <StudentLayout
-          currentPath={currentRoute}
-          onNavigate={handleNavigatePortal}
-          onBackToPublic={handleBackToPublic}
-        />
-      </RouteGuard>
-    );
-  }
-
-  // 2. MANAGEMENT PORTAL (All /management and /management/* routes)
-  if (currentRoute.startsWith('/management')) {
-    return (
-      <RouteGuard
-        requiredRole="placement-cell"
-        currentPath={currentRoute}
-        onNavigateLogin={(role) => handleNavigatePortal(`/login?role=${role}`)}
-        onNavigatePortal={handleNavigatePortal}
-      >
-        <ManagementLayout
-          currentPath={currentRoute}
-          onNavigate={handleNavigatePortal}
-          onBackToPublic={handleBackToPublic}
-        />
-      </RouteGuard>
-    );
-  }
-
-  // 3. RECRUITER PORTAL (All /recruiter and /recruiter/* routes)
-  if (currentRoute.startsWith('/recruiter')) {
-    return (
-      <RouteGuard
-        requiredRole="recruiter"
-        currentPath={currentRoute}
-        onNavigateLogin={(role) => handleNavigatePortal(`/login?role=${role}`)}
-        onNavigatePortal={handleNavigatePortal}
-      >
-        <RecruiterLayout
-          currentPath={currentRoute}
-          onNavigate={handleNavigatePortal}
-          onBackToPublic={handleBackToPublic}
-        />
-      </RouteGuard>
-    );
-  }
-
-  // 4. SCHOOLS EXPERIENCE (All /schools and /schools/* routes)
-  if (currentRoute.startsWith('/schools')) {
-    const cleanRoute = currentRoute.split('?')[0].split('#')[0];
-
-    // Subroute: Programme Details (/schools/:schoolSlug/programmes/:programmeSlug)
-    if (cleanRoute.includes('/programmes/')) {
-      const parts = cleanRoute.replace('/schools/', '').split('/programmes/');
-      const schoolSlug = parts[0];
-      const programmeSlug = parts[1];
-      const match = SchoolDataService.getProgrammeBySlug(schoolSlug, programmeSlug);
-      if (match) {
-        return (
-          <ProgrammeDetailView
-            school={match.school}
-            programme={match.programme}
-            onBackToSchool={() => handleNavigatePortal(`/schools/${schoolSlug}`)}
-            onNavigatePortal={handleNavigatePortal}
-          />
-        );
-      }
+  const renderPageContent = () => {
+    // 0. AUTHENTICATION & PORTAL SELECTOR ROUTES
+    if (currentRoute.startsWith('/auth/callback')) {
+      handleNavigatePortal('/login');
+      return null;
     }
 
-    // Subroute: School Details (/schools/:schoolSlug)
-    const schoolSlug = cleanRoute.replace('/schools', '').replace(/^\//, '');
-    if (schoolSlug) {
-      const school = SchoolDataService.getSchoolBySlug(schoolSlug);
-      if (school) {
-        return (
-          <SchoolDetailView
-            school={school}
-            onBack={handleBackToSchoolsSection}
-            onNavigateProgramme={(progSlug) => handleNavigatePortal(`/schools/${school.slug}/programmes/${progSlug}`)}
-            onNavigateOpportunity={() => handleNavigatePortal('/opportunities')}
-            onNavigatePortal={handleNavigatePortal}
-          />
-        );
-      }
+    if (currentRoute.startsWith('/dev/auth-status')) {
+      return (
+        <DevAuthStatusPage
+          onNavigateHome={handleBackToPublic}
+          onNavigateLogin={() => handleNavigatePortal('/login')}
+        />
+      );
     }
 
-    // Default: Schools Directory View (/schools)
-    return (
-      <SchoolsDirectoryView
-        onSelectSchool={(slug) => handleNavigatePortal(`/schools/${slug}`)}
-        onBackToHub={handleBackToSchoolsSection}
-      />
-    );
-  }
+    if (currentRoute.startsWith('/portals')) {
+      return (
+        <PortalSelector
+          onSelectPortal={(role) => handleNavigatePortal(`/login?role=${role}`)}
+          onBackToPublic={handleBackToPublic}
+        />
+      );
+    }
 
-  // 5. OPPORTUNITIES EXPERIENCE (All /opportunities and /opportunities/* routes)
-  if (currentRoute.startsWith('/opportunities')) {
-    const cleanRoute = currentRoute.split('?')[0].split('#')[0];
-    const queryString = currentRoute.includes('?') ? currentRoute.split('?')[1] : '';
-    const searchParams = new URLSearchParams(queryString);
-    const initialType = searchParams.get('type') || undefined;
+    if (currentRoute.startsWith('/login')) {
+      const queryString = currentRoute.includes('?') ? currentRoute.split('?')[1] : '';
+      const searchParams = new URLSearchParams(queryString);
+      const roleParam = (searchParams.get('role') as AuthRole) || 'student';
 
-    // Subroute: Opportunity Detail (/opportunities/:opportunityId)
-    if (cleanRoute.startsWith('/opportunities/')) {
-      const oppId = cleanRoute.replace('/opportunities/', '');
+      return (
+        <LoginPage
+          key={roleParam}
+          initialRole={roleParam}
+          onBackToPortals={() => handleNavigatePortal('/portals')}
+          onLoginSuccess={(role) => {
+            const target = role === 'student' ? '/student' : role === 'recruiter' ? '/recruiter' : '/management';
+            handleNavigatePortal(target);
+          }}
+          onNavigateForgotPassword={() => handleNavigatePortal('/forgot-password')}
+        />
+      );
+    }
+
+    if (currentRoute.startsWith('/forgot-password')) {
+      return (
+        <ForgotPasswordPage
+          onBackToLogin={() => handleNavigatePortal('/login')}
+        />
+      );
+    }
+
+    // 1. STUDENT PORTAL (All /student and /student/* routes)
+    if (currentRoute.startsWith('/student')) {
+      return (
+        <RouteGuard
+          requiredRole="student"
+          currentPath={currentRoute}
+          onNavigateLogin={(role) => handleNavigatePortal(`/login?role=${role}`)}
+          onNavigatePortal={handleNavigatePortal}
+        >
+          <StudentLayout
+            currentPath={currentRoute}
+            onNavigate={handleNavigatePortal}
+            onBackToPublic={handleBackToPublic}
+          />
+        </RouteGuard>
+      );
+    }
+
+    // 2. MANAGEMENT PORTAL (All /management and /management/* routes)
+    if (currentRoute.startsWith('/management')) {
+      return (
+        <RouteGuard
+          requiredRole="placement-cell"
+          currentPath={currentRoute}
+          onNavigateLogin={(role) => handleNavigatePortal(`/login?role=${role}`)}
+          onNavigatePortal={handleNavigatePortal}
+        >
+          <ManagementLayout
+            currentPath={currentRoute}
+            onNavigate={handleNavigatePortal}
+            onBackToPublic={handleBackToPublic}
+          />
+        </RouteGuard>
+      );
+    }
+
+    // 3. RECRUITER PORTAL (All /recruiter and /recruiter/* routes)
+    if (currentRoute.startsWith('/recruiter')) {
+      return (
+        <RouteGuard
+          requiredRole="recruiter"
+          currentPath={currentRoute}
+          onNavigateLogin={(role) => handleNavigatePortal(`/login?role=${role}`)}
+          onNavigatePortal={handleNavigatePortal}
+        >
+          <RecruiterLayout
+            currentPath={currentRoute}
+            onNavigate={handleNavigatePortal}
+            onBackToPublic={handleBackToPublic}
+          />
+        </RouteGuard>
+      );
+    }
+
+    // 4. SCHOOLS EXPERIENCE (All /schools and /schools/* routes)
+    if (currentRoute.startsWith('/schools')) {
+      const cleanRoute = currentRoute.split('?')[0].split('#')[0];
+
+      // Subroute: Programme Details (/schools/:schoolSlug/programmes/:programmeSlug)
+      if (cleanRoute.includes('/programmes/')) {
+        const parts = cleanRoute.replace('/schools/', '').split('/programmes/');
+        const schoolSlug = parts[0];
+        const programmeSlug = parts[1];
+        const match = SchoolDataService.getProgrammeBySlug(schoolSlug, programmeSlug);
+        if (match) {
+          return (
+            <ProgrammeDetailView
+              school={match.school}
+              programme={match.programme}
+              onBackToSchool={() => handleNavigatePortal(`/schools/${schoolSlug}`)}
+              onNavigatePortal={handleNavigatePortal}
+            />
+          );
+        }
+      }
+
+      // Subroute: School Details (/schools/:schoolSlug)
+      const schoolSlug = cleanRoute.replace('/schools', '').replace(/^\//, '');
+      if (schoolSlug) {
+        const school = SchoolDataService.getSchoolBySlug(schoolSlug);
+        if (school) {
+          return (
+            <SchoolDetailView
+              school={school}
+              onBack={handleBackToSchoolsSection}
+              onNavigateProgramme={(progSlug) => handleNavigatePortal(`/schools/${school.slug}/programmes/${progSlug}`)}
+              onNavigateOpportunity={() => handleNavigatePortal('/opportunities')}
+              onNavigatePortal={handleNavigatePortal}
+            />
+          );
+        }
+      }
+
+      // Root of Schools Directory (/schools)
+      return (
+        <SchoolsDirectoryView
+          onSelectSchool={(slug: string) => handleNavigatePortal(`/schools/${slug}`)}
+          onBackToHub={handleBackToPublic}
+        />
+      );
+    }
+
+    // 5. OPPORTUNITIES EXPERIENCE (All /opportunities and /opportunities/* routes)
+    if (currentRoute.startsWith('/opportunities')) {
+      const cleanRoute = currentRoute.split('?')[0].split('#')[0];
+      const oppId = cleanRoute.replace('/opportunities', '').replace(/^\//, '');
+
       if (oppId) {
         return (
           <OpportunityDetailPublicView
@@ -327,152 +332,161 @@ const AppContent: React.FC = () => {
           />
         );
       }
+
+      return (
+        <OpportunitiesDirectoryView
+          onSelectOpportunity={(id: string) => handleNavigatePortal(`/opportunities/${id}`)}
+          onBackToHub={handleBackToPublic}
+          onNavigatePortal={handleNavigatePortal}
+          onOpenStudentLoginModal={() => handleNavigatePortal('/login?role=student')}
+        />
+      );
     }
 
-    // Default: Opportunities Directory View (/opportunities)
-    return (
-      <OpportunitiesDirectoryView
-        initialType={initialType}
-        onSelectOpportunity={(oppId) => handleNavigatePortal(`/opportunities/${oppId}`)}
-        onBackToHub={handleBackToPublic}
-        onNavigatePortal={handleNavigatePortal}
-        onOpenStudentLoginModal={() => handleNavigatePortal('/login?role=student')}
-      />
-    );
-  }
-
-  // 6. GLOBAL NETWORK EXPERIENCE (/network and /network/* routes)
-  if (currentRoute.startsWith('/network')) {
-    return (
-      <GlobalNetworkView
-        onBackToHub={handleBackToPublic}
-        onNavigatePortal={handleNavigatePortal}
-      />
-    );
-  }
-
-  // 7. ALUMNI EXPERIENCE (/alumni and /alumni/* routes)
-  if (currentRoute.startsWith('/alumni')) {
-    const cleanRoute = currentRoute.split('?')[0].split('#')[0];
-    if (cleanRoute === '/alumni/join' || cleanRoute === '/alumni/join/') {
+    // 6. GLOBAL NETWORK (All /network routes)
+    if (currentRoute.startsWith('/network')) {
       return (
-        <AlumniJoinView
-          onBackToAlumni={() => handleNavigatePortal('/alumni')}
+        <GlobalNetworkView
+          onBackToHub={handleBackToPublic}
           onNavigatePortal={handleNavigatePortal}
         />
       );
     }
+
+    // 7. ALUMNI HUB (All /alumni and /alumni/* routes)
+    if (currentRoute.startsWith('/alumni')) {
+      const cleanRoute = currentRoute.split('?')[0].split('#')[0];
+      if (cleanRoute.startsWith('/alumni/join')) {
+        return (
+          <AlumniJoinView
+            onBackToAlumni={() => handleNavigatePortal('/alumni')}
+            onNavigatePortal={handleNavigatePortal}
+          />
+        );
+      }
+      return (
+        <AlumniLandingView
+          onBackToHub={handleBackToPublic}
+          onNavigatePortal={handleNavigatePortal}
+        />
+      );
+    }
+
+    // 8. PUBLIC PORTAL (Root '/' route, completely untouched and intact)
     return (
-      <AlumniLandingView
-        onBackToHub={handleBackToPublic}
-        onNavigatePortal={handleNavigatePortal}
-      />
+      <div className="relative min-h-screen bg-navy-dark text-rvu-text selection:bg-gold selection:text-navy-dark overflow-x-hidden">
+        
+        {/* 1. STICKY HEADER */}
+        <Header
+          onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
+          onNavigatePortal={handleNavigatePortal}
+        />
+
+        <main>
+          {/* 2. PUBLIC PORTAL HERO */}
+          <Hero
+            onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
+            onExploreOpportunities={() => scrollToSection('opportunities')}
+            onNavigatePortal={handleNavigatePortal}
+          />
+
+          {/* 3. PLACEMENT IMPACT (Verified 2025–26 Data) */}
+          <PlacementImpact />
+
+          {/* 4. PLACEMENT STORY: BEYOND PLACEMENTS */}
+          <BeyondPlacements />
+
+          {/* 5. PLACEMENT PERFORMANCE (Aviatrix ₹43.5 LPA, Salary Distribution, Multi-offers) */}
+          <PlacementPerformance />
+
+          {/* 6. ELIGIBLE TALENT POOL (1,608 Students Breakdown) */}
+          <EligibleTalent />
+
+          {/* 7. 9 ACADEMIC SCHOOLS & TALENT ECOSYSTEM */}
+          <SchoolsTalent
+            onNavigateSchool={(slug) => handleNavigatePortal(`/schools/${slug}`)}
+            onNavigatePortal={handleNavigatePortal}
+          />
+
+          {/* 8. WHY RECRUIT AT RV UNIVERSITY (6 Official Value Propositions) */}
+          <WhyRecruit />
+
+          {/* 9. CAREER JOURNEY ROADMAP */}
+          <CareerJourney />
+
+          {/* 10. OPPORTUNITY DISCOVERY */}
+          <OpportunityExplorer
+            onNavigatePortal={handleNavigatePortal}
+            onOpenStudentLoginModal={() => handleNavigatePortal('/login?role=student')}
+          />
+
+          {/* 11. THREE STAKEHOLDER PATHWAYS & CTAs */}
+          <StakeholderCards
+            onExploreStudentHub={() => handleNavigatePortal('/student')}
+            onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
+            onNavigatePortal={handleNavigatePortal}
+          />
+
+          {/* 12. PLACEMENT INSIGHTS ANALYTICS */}
+          <PlacementInsights />
+
+          {/* 13. INDUSTRY PARTNERS NETWORK */}
+          <IndustryPartners
+            onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
+            onNavigatePortal={handleNavigatePortal}
+          />
+
+          {/* 14. STUDENT SUCCESS STORIES / ALUMNI & CANDIDATE EXCELLENCE */}
+          <SuccessStories
+            onNavigatePortal={handleNavigatePortal}
+          />
+
+          {/* 15. CAREER RESOURCES TOOLKIT */}
+          <CareerResources />
+
+          {/* 16. AI CAREER ASSISTANT PREVIEW */}
+          <AICareerAssistant />
+
+          {/* 17. SIGNATURE BRAND MOMENT: "GO, CHANGE THE WORLD." */}
+          <SignatureBrandMoment />
+
+          {/* 18. FINAL CALL TO ACTION */}
+          <FinalCTA
+            onExploreOpportunities={() => scrollToSection('opportunities')}
+            onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
+          />
+        </main>
+
+        {/* 19. INSTITUTIONAL FOOTER */}
+        <Footer
+          onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
+          onNavigatePortal={handleNavigatePortal}
+        />
+
+        {/* Global Modals */}
+        <RecruiterModal
+          isOpen={recruiterModalOpen}
+          onClose={() => setRecruiterModalOpen(false)}
+        />
+
+        <StudentLoginModal
+          isOpen={loginModalOpen}
+          onClose={() => setLoginModalOpen(false)}
+          onNavigateLogin={() => handleNavigatePortal('/login?role=student')}
+        />
+
+      </div>
     );
-  }
+  };
 
-  // 8. PUBLIC PORTAL (Root '/' route, completely untouched and intact)
   return (
-    <div className="relative min-h-screen bg-navy-dark text-rvu-text selection:bg-gold selection:text-navy-dark overflow-x-hidden">
-      
-      {/* 1. STICKY HEADER */}
-      <Header
-        onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
-        onNavigatePortal={handleNavigatePortal}
+    <>
+      {renderPageContent()}
+      <PlacementAIChatbot
+        currentRole={getChatbotRole()}
+        onNavigate={handleNavigatePortal}
       />
-
-      <main>
-        {/* 2. PUBLIC PORTAL HERO */}
-        <Hero
-          onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
-          onExploreOpportunities={() => scrollToSection('opportunities')}
-        />
-
-        {/* 3. PLACEMENT IMPACT (Verified 2025–26 Data) */}
-        <PlacementImpact />
-
-        {/* 4. PLACEMENT STORY: BEYOND PLACEMENTS */}
-        <BeyondPlacements />
-
-        {/* 5. PLACEMENT PERFORMANCE (Aviatrix ₹43.5 LPA, Salary Distribution, Multi-offers) */}
-        <PlacementPerformance />
-
-        {/* 6. ELIGIBLE TALENT POOL (1,608 Students Breakdown) */}
-        <EligibleTalent />
-
-        {/* 7. 9 ACADEMIC SCHOOLS & TALENT ECOSYSTEM */}
-        <SchoolsTalent
-          onNavigateSchool={(slug) => handleNavigatePortal(`/schools/${slug}`)}
-          onNavigatePortal={handleNavigatePortal}
-        />
-
-        {/* 8. WHY RECRUIT AT RV UNIVERSITY (6 Official Value Propositions) */}
-        <WhyRecruit />
-
-        {/* 9. CAREER JOURNEY ROADMAP */}
-        <CareerJourney />
-
-        {/* 10. OPPORTUNITY DISCOVERY */}
-        <OpportunityExplorer
-          onNavigatePortal={handleNavigatePortal}
-          onOpenStudentLoginModal={() => handleNavigatePortal('/login?role=student')}
-        />
-
-        {/* 11. THREE STAKEHOLDER PATHWAYS & CTAs */}
-        <StakeholderCards
-          onExploreStudentHub={() => handleNavigatePortal('/student')}
-          onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
-          onNavigatePortal={handleNavigatePortal}
-        />
-
-        {/* 12. PLACEMENT INSIGHTS ANALYTICS */}
-        <PlacementInsights />
-
-        {/* 13. INDUSTRY PARTNERS NETWORK */}
-        <IndustryPartners
-          onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
-          onNavigatePortal={handleNavigatePortal}
-        />
-
-        {/* 14. STUDENT SUCCESS STORIES / ALUMNI & CANDIDATE EXCELLENCE */}
-        <SuccessStories
-          onNavigatePortal={handleNavigatePortal}
-        />
-
-        {/* 15. CAREER RESOURCES TOOLKIT */}
-        <CareerResources />
-
-        {/* 16. AI CAREER ASSISTANT PREVIEW */}
-        <AICareerAssistant />
-
-        {/* 17. SIGNATURE BRAND MOMENT: "GO, CHANGE THE WORLD." */}
-        <SignatureBrandMoment />
-
-        {/* 18. FINAL CALL TO ACTION */}
-        <FinalCTA
-          onExploreOpportunities={() => scrollToSection('opportunities')}
-          onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
-        />
-      </main>
-
-      {/* 19. INSTITUTIONAL FOOTER */}
-      <Footer
-        onOpenRecruiterModal={() => setRecruiterModalOpen(true)}
-        onNavigatePortal={handleNavigatePortal}
-      />
-
-      {/* Global Modals */}
-      <RecruiterModal
-        isOpen={recruiterModalOpen}
-        onClose={() => setRecruiterModalOpen(false)}
-      />
-
-      <StudentLoginModal
-        isOpen={loginModalOpen}
-        onClose={() => setLoginModalOpen(false)}
-        onNavigateLogin={() => handleNavigatePortal('/login?role=student')}
-      />
-
-    </div>
+    </>
   );
 };
 

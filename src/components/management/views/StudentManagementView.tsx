@@ -482,6 +482,24 @@ export const StudentManagementView: React.FC<StudentManagementViewProps> = ({
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
+                            onClick={() => {
+                              const doc = store.documents.find(d => d.studentId === student.id && d.type === 'RESUME');
+                              const fileName = doc?.fileName || `${student.name.replace(/\s+/g, '_')}_Resume.txt`;
+                              const fallback = `RV UNIVERSITY PLACEMENT DOSSIER\nStudent: ${student.name} (${student.id})\nProgramme: ${student.programme}\nCGPA: ${student.cgpa}\nSkills: ${student.skills.map(s => s.name).join(', ')}\nEligibility: ${student.eligibilityStatus}\nPlacement Status: ${student.placementStatus}`;
+                              const anchor = document.createElement('a');
+                              anchor.href = doc?.fileDataUrl || `data:text/plain;charset=utf-8,${encodeURIComponent(fallback)}`;
+                              anchor.download = fileName;
+                              document.body.appendChild(anchor);
+                              anchor.click();
+                              document.body.removeChild(anchor);
+                            }}
+                            className="p-1.5 rounded-lg bg-navy-card hover:bg-gold/20 text-rvu-muted hover:text-gold border border-gold-border/30 transition-colors"
+                            title="Download Verified Resume"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
                             onClick={() => onNavigate(`/management/students/${student.id}`)}
                             className="p-1.5 rounded-lg bg-navy-card hover:bg-gold/20 text-rvu-muted hover:text-gold border border-gold-border/30 transition-colors"
                             title="View 360 Institutional Profile"

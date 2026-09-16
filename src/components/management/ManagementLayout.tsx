@@ -25,6 +25,7 @@ import { ReportsView } from './views/ReportsView';
 import { ResourcesManagementView } from './views/ResourcesManagementView';
 import { AuditLogView } from './views/AuditLogView';
 import { SettingsView } from './views/SettingsView';
+import { PrivateDocsRagView } from './views/PrivateDocsRagView';
 
 interface ManagementLayoutProps {
   currentPath: string;
@@ -146,6 +147,11 @@ export const ManagementLayout: React.FC<ManagementLayoutProps> = ({
     if (normalizedRoute.startsWith('/management/settings')) {
       const sub = normalizedRoute.replace('/management/settings', '').replace(/^\//, '');
       return <SettingsView store={store} initialTab={sub || undefined} onNavigate={onNavigate} />;
+    }
+
+    // 20. AI Knowledge & Pvt Docs
+    if (normalizedRoute.startsWith('/management/rag-docs')) {
+      return <PrivateDocsRagView store={store} onNavigate={onNavigate} />;
     }
 
     // Default: Command Dashboard

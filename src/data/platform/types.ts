@@ -355,6 +355,11 @@ export interface Application {
     actionType?: 'ASSESSMENT' | 'INTERVIEW_CONFIRM' | 'DOCUMENT_UPLOAD' | 'OFFER_ACCEPT';
   };
   
+  // Uploaded Candidate Resume Link
+  resumeFileName?: string;
+  resumeDataUrl?: string;
+  resumeSize?: string;
+  
   // Specific scheduled stage info (if reached)
   assessmentDetails?: {
     platform: string;
@@ -423,6 +428,7 @@ export interface StudentDocument {
   status: 'VERIFIED' | 'PENDING_VERIFICATION' | 'REJECTED';
   isActiveForApplications?: boolean;
   downloadUrl: string;
+  fileDataUrl?: string;
 }
 
 // 9. Notifications Entity

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Search,
   Briefcase,
-  Building,
   GraduationCap,
   Globe,
   Users,
@@ -215,12 +214,12 @@ export const OpportunityExplorer: React.FC<OpportunityExplorerProps> = ({
           </div>
         </div>
 
-        {/* 4. VERIFIED OPPORTUNITIES PREVIEW (SHARED STORE DATA) */}
+        {/* 4. VERIFIED OPPORTUNITIES PREVIEW (SHARED STORE DATA WITH RVU SALARY TIERS) */}
         <div className="mb-16">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
               <span className="text-xs font-mono uppercase text-gold tracking-wider block mb-1">
-                CAMPUS RECRUITMENT DRIVES
+                RVU CAMPUS RECRUITMENT DRIVES
               </span>
               <h3 className="text-xl sm:text-2xl font-bold font-display text-rvu-text">
                 Published Placement & Internship Listings
@@ -236,10 +235,40 @@ export const OpportunityExplorer: React.FC<OpportunityExplorerProps> = ({
             </button>
           </div>
 
+          {/* RVU Salary Tier Filter Chips */}
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            <span className="text-xs font-mono text-rvu-subtle uppercase mr-1">Tiers:</span>
+            <span className="px-3 py-1 rounded-lg text-xs font-mono bg-gold text-navy-dark font-bold cursor-pointer shadow-sm">
+              All Tiers
+            </span>
+            <span className="px-3 py-1 rounded-lg text-xs font-mono bg-purple-500/15 text-purple-300 border border-purple-500/30 font-semibold cursor-pointer hover:bg-purple-500/25">
+              🚀 Marquee (≥ ₹40 LPA)
+            </span>
+            <span className="px-3 py-1 rounded-lg text-xs font-mono bg-blue-500/15 text-blue-300 border border-blue-500/30 font-semibold cursor-pointer hover:bg-blue-500/25">
+              💎 Super Dream (₹20–₹40 LPA)
+            </span>
+            <span className="px-3 py-1 rounded-lg text-xs font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold cursor-pointer hover:bg-emerald-500/25">
+              ✨ Dream (₹10–₹20 LPA)
+            </span>
+            <span className="px-3 py-1 rounded-lg text-xs font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold cursor-pointer hover:bg-amber-500/25">
+              💼 Core & Internships
+            </span>
+          </div>
+
           {opportunities.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {opportunities.slice(0, 6).map((opp) => {
                 const hasApplied = isStudent && store.applications.some(a => a.opportunityId === opp.id && a.studentId === store.student.id);
+
+                // Derive Tier from CTC
+                const ctcNum = parseFloat(opp.ctcLpa.replace(/[^0-9.]/g, '')) || 12;
+                const tier = ctcNum >= 40 
+                  ? { label: 'MARQUEE', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' }
+                  : ctcNum >= 20
+                  ? { label: 'SUPER DREAM', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40' }
+                  : ctcNum >= 10
+                  ? { label: 'DREAM', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' }
+                  : { label: 'CORE', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' };
 
                 return (
                   <div
@@ -249,9 +278,14 @@ export const OpportunityExplorer: React.FC<OpportunityExplorerProps> = ({
                   >
                     <div>
                       <div className="flex items-start justify-between gap-2 mb-3">
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-gold-faint text-gold border border-gold/30 font-semibold uppercase">
-                          {opp.type}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border font-bold ${tier.color}`}>
+                            {tier.label}
+                          </span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-gold-faint text-gold border border-gold/30 font-semibold uppercase">
+                            {opp.type}
+                          </span>
+                        </div>
                         <span className="text-[10px] font-mono text-rvu-subtle">
                           {opp.workMode}
                         </span>
@@ -261,11 +295,18 @@ export const OpportunityExplorer: React.FC<OpportunityExplorerProps> = ({
                         {opp.role}
                       </h4>
 
-                      <div className="flex items-center gap-2 text-xs text-rvu-muted mb-3">
-                        <Building className="w-3.5 h-3.5 text-gold shrink-0" />
-                        <span className="font-semibold text-rvu-text truncate">{opp.companyName}</span>
-                        <span>•</span>
-                        <span className="truncate">{opp.location}</span>
+                      <div className="text-xs text-rvu-muted font-mono mb-3">
+                        {opp.companyName} • {opp.location}
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-[#0E1720] border border-white/5 flex items-center justify-between mb-4">
+                        <div>
+                          <div className="text-[10px] font-mono text-rvu-subtle uppercase">Package / CTC</div>
+                          <div className="text-sm font-bold text-gold font-mono">{opp.ctcLpa}</div>
+                        </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                          ✓ Verified Drive
+                        </span>
                       </div>
 
                       <p className="text-xs text-rvu-muted line-clamp-2 leading-relaxed mb-4">
@@ -273,9 +314,9 @@ export const OpportunityExplorer: React.FC<OpportunityExplorerProps> = ({
                       </p>
 
                       <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono mb-4 text-rvu-subtle">
-                        <span className="text-gold font-bold">{opp.ctcLpa}</span>
+                        <span>Min CGPA: <strong className="text-white">{opp.minCgpa}</strong></span>
                         <span>•</span>
-                        <span>Min CGPA: {opp.minCgpa}</span>
+                        <span>Backlogs: <strong className="text-emerald-400">Max {opp.maxBacklogsAllowed}</strong></span>
                       </div>
                     </div>
 
