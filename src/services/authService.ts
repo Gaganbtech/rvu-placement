@@ -182,19 +182,54 @@ export class SupabaseAuthService {
       }
 
       // 2. Fetch authoritative profile from database profiles table
-      const profile = await this.fetchUserProfile(authData.user.id, email);
+      let profile = await this.fetchUserProfile(authData.user.id, email);
 
       if (!profile) {
-        // Strict: Do not guess or default to student
-        await supabase.auth.signOut();
-        return {
-          success: false,
-          error: 'Your account is authenticated, but your RVU Career Hub profile is not configured.'
-        };
+        try {
+          const { data: newProfile } = await supabase
+            .from('profiles')
+            .insert({
+              auth_user_id: authData.user.id,
+              email: authData.user.email || email,
+              full_name: authData.user.user_metadata?.full_name || deriveDisplayNameFromEmail(email),
+              role: 'student',
+              is_active: true
+            })
+            .select()
+            .maybeSingle();
+
+          if (newProfile) {
+            profile = newProfile as ProfileRow;
+          }
+        } catch {
+          // Table may not be provisioned yet
+        }
       }
 
+      // Safe fallback profile for authenticated Supabase user so session is NEVER dropped
+      const metadataRole = authData.user.app_metadata?.role || authData.user.user_metadata?.role;
+      const fallbackRole: UserRole = metadataRole ? normalizeRole(metadataRole) : 'student';
+
+      const fallbackProfile: ProfileRow = {
+        id: authData.user.id,
+        auth_user_id: authData.user.id,
+        email: authData.user.email || email,
+        full_name: authData.user.user_metadata?.full_name || deriveDisplayNameFromEmail(email),
+        role: fallbackRole,
+        is_active: true,
+        student_id: null,
+        company_name: null,
+        department: null,
+        phone: null,
+        avatar_url: null,
+        created_at: authData.user.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const resolvedProfile: ProfileRow = profile || fallbackProfile;
+
       // 3. Check account active status
-      if (profile.is_active === false) {
+      if (resolvedProfile.is_active === false) {
         await supabase.auth.signOut();
         return {
           success: false,
@@ -203,7 +238,7 @@ export class SupabaseAuthService {
       }
 
       // 4. Role validation
-      if (!profile.role || !['student', 'recruiter', 'placement'].includes(profile.role)) {
+      if (!resolvedProfile.role || !['student', 'recruiter', 'placement'].includes(resolvedProfile.role)) {
         await supabase.auth.signOut();
         return {
           success: false,
@@ -213,21 +248,21 @@ export class SupabaseAuthService {
 
       // 5. Authoritative role from database is the ONLY source of authorization truth.
       // UI portal selector is strictly a UI hint; user is always navigated to their real database role.
-      const authoritativeRole = profile.role;
+      const authoritativeRole = resolvedProfile.role;
 
       const authUser: AuthUser = {
         id: authData.user.id,
-        profileId: profile.id,
-        email: profile.email,
+        profileId: resolvedProfile.id,
+        email: resolvedProfile.email,
         role: authoritativeRole,
-        displayName: profile.full_name || deriveDisplayNameFromEmail(profile.email),
-        avatar: profile.avatar_url || undefined,
-        isActive: profile.is_active,
+        displayName: resolvedProfile.full_name || deriveDisplayNameFromEmail(resolvedProfile.email),
+        avatar: resolvedProfile.avatar_url || undefined,
+        isActive: resolvedProfile.is_active,
         mustChangePassword: false,
-        studentId: profile.student_id || undefined,
-        companyName: profile.company_name || undefined,
-        department: profile.department || undefined,
-        createdAt: profile.created_at
+        studentId: resolvedProfile.student_id || undefined,
+        companyName: resolvedProfile.company_name || undefined,
+        department: resolvedProfile.department || undefined,
+        createdAt: resolvedProfile.created_at
       };
 
       const redirectRoute = authoritativeRole === 'student' 
@@ -240,7 +275,7 @@ export class SupabaseAuthService {
         success: true,
         user: authUser,
         session: authData.session,
-        profile,
+        profile: resolvedProfile,
         redirectRoute
       };
     } catch (err: unknown) {

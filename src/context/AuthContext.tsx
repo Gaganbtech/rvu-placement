@@ -141,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRole(mappedRole);
       setUser(mappedUser);
       activeUserIdRef.current = currentSession.user.id;
-      hasProfileRef.current = Boolean(userProfile);
+      hasProfileRef.current = Boolean(mappedUser);
 
       safeAuthLog('Profile Synchronized', {
         userId: currentSession.user.id ? 'present' : 'none',
@@ -276,6 +276,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(result.user);
         setRole(result.user.role);
         activeUserIdRef.current = result.user.id;
+        hasProfileRef.current = true;
         setIsInitialized(true);
 
         safeAuthLog('Login Hydrated State Atomically', {

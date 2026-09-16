@@ -2,18 +2,7 @@
 // Comprehensive Test Suite for RVU Career Hub Session Hydration & Redirect Prevention
 // Enforces Section 22 validation requirements for auth state lifecycle, route guards, and role security.
 
-import { 
-  authService, 
-  sanitizeAuthError, 
-  normalizeRole 
-} from './authService';
-import type { 
-  UserRole, 
-  AuthUser, 
-  AuthState,
-  LoginResult 
-} from '../types/auth';
-import type { ProfileRow } from '../types/database';
+import type { UserRole, AuthState } from '../types/auth';
 
 let passed = 0;
 let failed = 0;
@@ -34,7 +23,7 @@ function assert(condition: boolean, msg: string) {
 function evaluateRouteAccess(
   authState: AuthState,
   allowedRoles: UserRole[],
-  targetPath: string
+  _targetPath: string
 ): {
   decision: 'LOADING' | 'ALLOW' | 'REDIRECT_LOGIN' | 'REDIRECT_HOME' | 'ACCOUNT_INACTIVE' | 'ACCOUNT_UNPROVISIONED';
   redirectTo?: string;
@@ -135,6 +124,11 @@ async function runSessionHydrationTests() {
       full_name: 'RVU Student',
       role: 'student',
       is_active: true,
+      student_id: 'RVU23CS101',
+      company_name: null,
+      department: 'School of Computer Science and Engineering',
+      phone: null,
+      avatar_url: null,
       created_at: '',
       updated_at: ''
     },
@@ -180,6 +174,11 @@ async function runSessionHydrationTests() {
       full_name: 'Google Campus Recruiter',
       role: 'recruiter',
       is_active: true,
+      student_id: null,
+      company_name: 'Google India',
+      department: 'University Talent Acquisition',
+      phone: null,
+      avatar_url: null,
       created_at: '',
       updated_at: ''
     },
@@ -217,6 +216,11 @@ async function runSessionHydrationTests() {
       full_name: 'Director of Placement',
       role: 'placement',
       is_active: true,
+      student_id: null,
+      company_name: null,
+      department: 'Corporate Relations and Career Services',
+      phone: null,
+      avatar_url: null,
       created_at: '',
       updated_at: ''
     },
@@ -277,20 +281,21 @@ async function runSessionHydrationTests() {
   console.log('\n--- Test Suite 4: Error Handling & Account Status Messages ---');
 
   // 12. Missing profile does NOT appear as "Invalid credentials"
-  const missingProfileMsg = 'Your account is authenticated, but your RVU Career Hub profile is not configured.';
-  assert(missingProfileMsg !== 'Email or password is incorrect.', '12. Missing profile message is distinct from credential error');
+  const missingProfileMsg: string = 'Your account is authenticated, but your RVU Career Hub profile is not configured.';
+  const genericCredError: string = 'Email or password is incorrect.';
+  assert(missingProfileMsg !== genericCredError, '12. Missing profile message is distinct from credential error');
   assert(!missingProfileMsg.includes('credentials'), '12. Missing profile does not mention invalid credentials');
 
   // 13. Missing role does NOT appear as "Invalid credentials"
-  const missingRoleMsg = 'Your portal access has not been assigned yet. Please contact the Placement Cell.';
-  assert(missingRoleMsg !== 'Email or password is incorrect.', '13. Missing role message is distinct from credential error');
+  const missingRoleMsg: string = 'Your portal access has not been assigned yet. Please contact the Placement Cell.';
+  assert(missingRoleMsg !== genericCredError, '13. Missing role message is distinct from credential error');
 
   const unprovisionedState: AuthState = {
     session: { access_token: 'tok-u', refresh_token: 'r-u', expires_in: 3600, token_type: 'bearer', user: { id: 'u-unprov', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } },
     user: {
       id: 'u-unprov',
       email: 'newuser@rvu.edu.in',
-      role: 'student', // Fallback
+      role: 'student',
       displayName: 'Unprovisioned User',
       isActive: true,
       mustChangePassword: false,
@@ -301,12 +306,17 @@ async function runSessionHydrationTests() {
       auth_user_id: 'u-unprov',
       email: 'newuser@rvu.edu.in',
       full_name: 'Unprovisioned User',
-      role: '' as any, // Missing role in DB
+      role: '' as any,
       is_active: true,
+      student_id: null,
+      company_name: null,
+      department: null,
+      phone: null,
+      avatar_url: null,
       created_at: '',
       updated_at: ''
     },
-    role: null, // Unassigned role
+    role: null,
     isLoading: false,
     isInitialized: true
   };
@@ -322,7 +332,7 @@ async function runSessionHydrationTests() {
       email: 'inactive@rvu.edu.in',
       role: 'student',
       displayName: 'Inactive User',
-      isActive: false, // Inactive account
+      isActive: false,
       mustChangePassword: false,
       createdAt: ''
     },
@@ -333,6 +343,11 @@ async function runSessionHydrationTests() {
       full_name: 'Inactive User',
       role: 'student',
       is_active: false,
+      student_id: null,
+      company_name: null,
+      department: null,
+      phone: null,
+      avatar_url: null,
       created_at: '',
       updated_at: ''
     },
@@ -357,7 +372,7 @@ async function runSessionHydrationTests() {
   assert(postLogoutAccess.decision === 'REDIRECT_LOGIN', '15. Logout removes access to protected routes');
 
   // ==============================================================================
-  // Test Suite 5: Login UI Hint vs Authoritative Database Role
+  // Test Suite 5: Login UI Portal Selector as Hint Only
   // ==============================================================================
   console.log('\n--- Test Suite 5: Login UI Portal Selector as Hint Only ---');
 

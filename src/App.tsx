@@ -57,27 +57,7 @@ import type { AuthRole } from './types/auth';
 const getInitialRoute = (): string => {
   if (typeof window === 'undefined') return '/';
   
-  // 1. Check Hash routing first
-  const hash = window.location.hash;
-  if (
-    hash.startsWith('#/login') ||
-    hash.startsWith('#/register') ||
-    hash.startsWith('#/portals') ||
-    hash.startsWith('#/forgot-password') ||
-    hash.startsWith('#/reset-password') ||
-    hash.startsWith('#/request-access') ||
-    hash.startsWith('#/student') ||
-    hash.startsWith('#/recruiter') ||
-    hash.startsWith('#/management') ||
-    hash.startsWith('#/schools') ||
-    hash.startsWith('#/opportunities') ||
-    hash.startsWith('#/network') ||
-    hash.startsWith('#/alumni')
-  ) {
-    return hash.slice(1);
-  }
-
-  // 2. Check Pathname routing
+  // 1. Check Pathname routing first (authoritative)
   const path = window.location.pathname;
   if (
     path.startsWith('/login') ||
@@ -97,6 +77,26 @@ const getInitialRoute = (): string => {
     // Preserve query parameters if present
     const search = window.location.search || '';
     return `${path}${search}`;
+  }
+
+  // 2. Check Hash routing fallback only if pathname is root
+  const hash = window.location.hash;
+  if (
+    hash.startsWith('#/login') ||
+    hash.startsWith('#/register') ||
+    hash.startsWith('#/portals') ||
+    hash.startsWith('#/forgot-password') ||
+    hash.startsWith('#/reset-password') ||
+    hash.startsWith('#/request-access') ||
+    hash.startsWith('#/student') ||
+    hash.startsWith('#/recruiter') ||
+    hash.startsWith('#/management') ||
+    hash.startsWith('#/schools') ||
+    hash.startsWith('#/opportunities') ||
+    hash.startsWith('#/network') ||
+    hash.startsWith('#/alumni')
+  ) {
+    return hash.slice(1);
   }
 
   return '/';
@@ -125,6 +125,14 @@ const AppContent: React.FC = () => {
   const handleNavigatePortal = (route: string) => {
     try {
       window.history.pushState({}, '', route);
+      // Remove any conflicting hash so hashchange listener does not revert route
+      if (window.location.hash && window.location.hash.startsWith('#/')) {
+        try {
+          window.history.replaceState(null, '', route);
+        } catch {
+          // Safe ignore
+        }
+      }
     } catch {
       window.location.hash = route;
     }
