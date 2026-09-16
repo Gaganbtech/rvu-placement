@@ -30,11 +30,12 @@ export const getEnvVar = (key: string): string => {
   return '';
 };
 
-export const SUPABASE_URL = getEnvVar('VITE_SUPABASE_URL');
+export const SUPABASE_URL = getEnvVar('VITE_SUPABASE_URL') || 'https://pnzuudpptjyjabtbmsti.supabase.co';
 // Support both standard VITE_SUPABASE_PUBLISHABLE_KEY and legacy VITE_SUPABASE_ANON_KEY
 export const SUPABASE_PUBLISHABLE_KEY = 
   getEnvVar('VITE_SUPABASE_PUBLISHABLE_KEY') || 
-  getEnvVar('VITE_SUPABASE_ANON_KEY');
+  getEnvVar('VITE_SUPABASE_ANON_KEY') || 
+  'sb_publishable__pLJrp1cY0pIKsyz8PDP1A_KW7P1Rb3';
 
 export const INSTITUTIONAL_DOMAIN = getEnvVar('VITE_AUTH_INSTITUTIONAL_EMAIL_DOMAIN') || 'rvu.edu.in';
 
