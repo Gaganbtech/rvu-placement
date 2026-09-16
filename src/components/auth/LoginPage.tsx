@@ -13,14 +13,14 @@ import {
   Sparkles, 
   Info
 } from 'lucide-react';
-import type { AuthRole } from '../../types/auth';
+import type { UserRole, AuthRole } from '../../types/auth';
 import { useAuth } from '../../context/AuthContext';
-import { authService } from '../../services/authService';
+import { normalizeRole } from '../../services/authService';
 
 interface LoginPageProps {
-  initialRole?: AuthRole;
+  initialRole?: UserRole | AuthRole;
   onBackToPortals: () => void;
-  onLoginSuccess: (role: AuthRole) => void;
+  onLoginSuccess: (role: UserRole) => void;
   onNavigateForgotPassword?: () => void;
 }
 
@@ -32,8 +32,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 }) => {
   const { login } = useAuth();
   
-  const [selectedRole, setSelectedRole] = useState<AuthRole>(initialRole);
-  const [identifier, setIdentifier] = useState(() => authService.getRememberedIdentifier() || '');
+  const [selectedRole, setSelectedRole] = useState<UserRole>(() => normalizeRole(initialRole));
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -41,7 +41,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [forgotPasswordNotice, setForgotPasswordNotice] = useState<string | null>(null);
 
-  const roleMeta: Record<AuthRole, {
+  const roleMeta: Record<UserRole, {
     title: string;
     badge: string;
     icon: React.ReactNode;
@@ -65,9 +65,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       identifierPlaceholder: 'Enter your corporate recruiter email',
       hint: 'e.g. recruiter@google.com or campus-talent@microsoft.com'
     },
-    'placement-cell': {
-      title: 'CAR / PLACEMENT CELL',
-      badge: 'PLACEMENT GOVERNANCE',
+    'placement': {
+      title: 'PLACEMENT CELL',
+      badge: 'PLACEMENT CELL OPERATIONS',
       icon: <ShieldCheck className="w-4 h-4 text-[#CCAA68]" />,
       portalName: 'Placement Cell',
       identifierPlaceholder: 'Enter your placement officer ID or email',
@@ -77,8 +77,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
   const currentMeta = roleMeta[selectedRole];
 
-  const handleRoleChange = (newRole: AuthRole) => {
-    setSelectedRole(newRole);
+  const handleRoleChange = (newRole: UserRole | AuthRole) => {
+    setSelectedRole(normalizeRole(newRole));
     setErrorMsg(null);
     setForgotPasswordNotice(null);
   };
@@ -99,6 +99,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setIsSubmitting(true);
     try {
       const result = await login({
+        email: trimmedId,
         identifier: trimmedId,
         password: trimmedPass,
         role: selectedRole,
@@ -133,13 +134,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-[#CCAA68]/5 rounded-full blur-3xl pointer-events-none -mr-40 -mt-40" />
       <div className="absolute bottom-0 left-0 w-[450px] h-[450px] bg-[#19252F]/40 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32" />
 
-      {/* Top Header */}
+      {/* Top Header with Official RV University Logo */}
       <header className="relative z-10 max-w-6xl mx-auto w-full flex items-center justify-between py-2 border-b border-[#CCAA68]/20">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#19252F] border border-[#CCAA68]/40 flex items-center justify-center p-2 shadow-sm">
-            <GraduationCap className="w-6 h-6 text-[#CCAA68]" />
-          </div>
-          <div>
+          <img 
+            src="/src/assets/rvu-logo-gold.svg" 
+            alt="RV University Logo" 
+            className="h-10 w-auto object-contain"
+          />
+          <div className="border-l border-[#CCAA68]/40 pl-3">
             <div className="text-sm font-bold text-white tracking-wide font-display">
               RV UNIVERSITY
             </div>
@@ -197,87 +200,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </div>
             </div>
 
-            {/* 1-Click Instant Demo Login Buttons */}
-            <div className="p-4 rounded-xl bg-[#19252F] border border-[#CCAA68]/30 space-y-3 text-left">
+            {/* Institutional Security Notice */}
+            <div className="p-4 rounded-xl bg-[#19252F] border border-[#CCAA68]/30 space-y-2 text-left">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#CCAA68]" />
+                <ShieldCheck className="w-4 h-4 text-[#CCAA68]" />
                 <span className="text-xs font-bold text-[#D8B978] font-mono uppercase tracking-wider">
-                  Instant 1-Click Demo Logins
+                  Institutional Placement Security
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setSelectedRole('student');
-                    setIdentifier('aarav.sharma23@rvu.edu.in');
-                    setPassword('welcome2placement');
-                    const res = await login({
-                      identifier: 'aarav.sharma23@rvu.edu.in',
-                      password: 'welcome2placement',
-                      role: 'student'
-                    });
-                    if (res.success && res.user) onLoginSuccess('student');
-                  }}
-                  className="p-2.5 rounded-lg bg-[#101A22] hover:bg-[#CCAA68]/20 border border-[#CCAA68]/30 text-left transition-all group"
-                >
-                  <div className="text-[11px] font-bold text-white group-hover:text-[#D8B978] flex items-center gap-1.5">
-                    <GraduationCap className="w-3.5 h-3.5 text-[#CCAA68]" />
-                    <span>Student</span>
-                  </div>
-                  <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
-                    aarav.sharma23@rvu.edu.in
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setSelectedRole('recruiter');
-                    setIdentifier('recruiter@google.com');
-                    setPassword('welcome2placement');
-                    const res = await login({
-                      identifier: 'recruiter@google.com',
-                      password: 'welcome2placement',
-                      role: 'recruiter'
-                    });
-                    if (res.success && res.user) onLoginSuccess('recruiter');
-                  }}
-                  className="p-2.5 rounded-lg bg-[#101A22] hover:bg-[#CCAA68]/20 border border-[#CCAA68]/30 text-left transition-all group"
-                >
-                  <div className="text-[11px] font-bold text-white group-hover:text-[#D8B978] flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-[#CCAA68]" />
-                    <span>Recruiter</span>
-                  </div>
-                  <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
-                    recruiter@google.com
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setSelectedRole('placement-cell');
-                    setIdentifier('admin@rvu.edu.in');
-                    setPassword('welcome2placement');
-                    const res = await login({
-                      identifier: 'admin@rvu.edu.in',
-                      password: 'welcome2placement',
-                      role: 'placement-cell'
-                    });
-                    if (res.success && res.user) onLoginSuccess('placement-cell');
-                  }}
-                  className="p-2.5 rounded-lg bg-[#101A22] hover:bg-[#CCAA68]/20 border border-[#CCAA68]/30 text-left transition-all group"
-                >
-                  <div className="text-[11px] font-bold text-white group-hover:text-[#D8B978] flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#CCAA68]" />
-                    <span>Placement Cell</span>
-                  </div>
-                  <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate">
-                    admin@rvu.edu.in
-                  </div>
-                </button>
-              </div>
+              <p className="text-xs text-[#AEB7BC] leading-relaxed">
+                RVU Career Hub requires verified institutional credentials. Student, recruiter, and placement roles are authenticated through Supabase Auth and protected by PostgreSQL Row-Level Security (RLS).
+              </p>
             </div>
           </div>
 
@@ -322,15 +255,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => handleRoleChange('placement-cell')}
+                    onClick={() => handleRoleChange('placement')}
                     className={`py-2 px-1.5 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-1 ${
-                      selectedRole === 'placement-cell'
+                      selectedRole === 'placement'
                         ? 'bg-[#CCAA68] text-[#101A22] shadow-md'
                         : 'text-[#AEB7BC] hover:text-white hover:bg-white/5'
                     }`}
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    <span className="text-[11px] truncate w-full text-center">Placement</span>
+                    <span className="text-[11px] truncate w-full text-center">Placement Cell</span>
                   </button>
                 </div>
               </div>

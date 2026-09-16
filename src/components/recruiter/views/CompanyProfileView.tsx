@@ -17,14 +17,11 @@ export const CompanyProfileView: React.FC<CompanyProfileViewProps> = ({
 }) => {
   const company = store.activeCompany;
 
-  const [name, setName] = useState(company?.name || 'TechnoSphere Systems');
-  const [industry, setIndustry] = useState(company?.industry || 'Enterprise Software & Cloud Platforms');
-  const [headquarters, setHeadquarters] = useState(company?.headquarters || 'Bengaluru, Karnataka');
-  const [website, setWebsite] = useState(company?.website || 'https://technosphere.io');
-  const [overview, setOverview] = useState(
-    company?.overview ||
-    'TechnoSphere Systems is a leading enterprise cloud orchestration platform delivering distributed infrastructure automation, Kubernetes orchestration, and AI systems tooling.'
-  );
+  const [name, setName] = useState(company?.name || '');
+  const [industry, setIndustry] = useState(company?.industry || '');
+  const [headquarters, setHeadquarters] = useState(company?.headquarters || '');
+  const [website, setWebsite] = useState(company?.website || '');
+  const [overview, setOverview] = useState(company?.overview || '');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const handleSave = (e: React.FormEvent) => {

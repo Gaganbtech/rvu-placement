@@ -124,10 +124,15 @@ export const StudentHeader: React.FC<StudentHeaderProps> = ({
           </button>
 
           <div className="flex items-center gap-2 text-xs font-mono text-rvu-muted">
-            <span className="text-rvu-subtle hidden sm:inline">RVU Career Hub</span>
+            <span className="text-[#CCAA68] font-bold tracking-wider hidden sm:inline">STUDENT PORTAL</span>
             <ChevronRight className="w-3 h-3 text-gold/40 hidden sm:inline" />
             <span className="text-white font-semibold">{getRouteLabel()}</span>
           </div>
+        </div>
+
+        {/* Official Role Badge */}
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold/15 border border-gold/40 text-[11px] font-mono font-bold text-gold">
+          <span>STUDENT</span>
         </div>
 
         {/* Center: Global Search Trigger Button */}
@@ -317,10 +322,10 @@ export const StudentHeader: React.FC<StudentHeaderProps> = ({
         isOpen={showSignOutModal}
         userEmail={user?.email}
         onCancel={() => setShowSignOutModal(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setShowSignOutModal(false);
-          logout();
-          onBackToPublic();
+          await logout();
+          onNavigate('/login?role=student');
         }}
       />
     </header>

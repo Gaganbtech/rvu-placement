@@ -201,7 +201,7 @@ export const RecruiterTeamView: React.FC<RecruiterTeamViewProps> = ({
                 <label className="text-gray-300 font-medium">Corporate Email Address *</label>
                 <input
                   type="email"
-                  placeholder="e.g. vikram@technosphere.io"
+                  placeholder="e.g. recruiter@company.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required

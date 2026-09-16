@@ -91,7 +91,7 @@ export const RecruiterHeader: React.FC<RecruiterHeaderProps> = ({
         </button>
 
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-gray-400 font-medium hidden sm:inline">RVU Corporate Connect</span>
+          <span className="text-[#CCAA68] font-bold tracking-wider hidden sm:inline">RECRUITER PORTAL</span>
           <ChevronRight className="w-3.5 h-3.5 text-[#CCAA68]/60 hidden sm:inline" />
           <span className="text-white font-semibold flex items-center gap-1.5 truncate">
             {getRouteLabel()}
@@ -99,8 +99,12 @@ export const RecruiterHeader: React.FC<RecruiterHeaderProps> = ({
         </div>
       </div>
 
-      {/* Right: Quick Search, Quick Action, Notifications, Profile */}
+      {/* Right: Role Badge, Quick Search, Quick Action, Notifications, Profile */}
       <div className="flex items-center gap-3">
+        {/* Official Role Badge */}
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold/15 border border-gold/40 text-[11px] font-mono font-bold text-gold">
+          <span>RECRUITER</span>
+        </div>
         {/* Search Bar (desktop) */}
         <div className="relative hidden md:block w-56 lg:w-64">
           <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -329,10 +333,10 @@ export const RecruiterHeader: React.FC<RecruiterHeaderProps> = ({
         isOpen={showSignOutModal}
         userEmail={user?.email || activeRecruiter?.email}
         onCancel={() => setShowSignOutModal(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setShowSignOutModal(false);
-          logout();
-          onNavigate('/');
+          await logout();
+          onNavigate('/login?role=recruiter');
         }}
       />
     </header>

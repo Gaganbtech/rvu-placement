@@ -1,9 +1,9 @@
 import React from 'react';
 import { GraduationCap, Building2, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
-import type { AuthRole } from '../../types/auth';
+import type { UserRole } from '../../types/auth';
 
 interface PortalSelectorProps {
-  onSelectPortal: (role: AuthRole) => void;
+  onSelectPortal: (role: UserRole) => void;
   onBackToPublic?: () => void;
 }
 
@@ -12,7 +12,7 @@ export const PortalSelector: React.FC<PortalSelectorProps> = ({
   onBackToPublic
 }) => {
   const portals: {
-    id: AuthRole;
+    id: UserRole;
     badge: string;
     title: string;
     description: string;
@@ -29,7 +29,7 @@ export const PortalSelector: React.FC<PortalSelectorProps> = ({
       features: [
         'Curated campus placements & internships',
         'AI preparation tracks & skill diagnostics',
-        'Direct CAR verified application workflows'
+        'Direct verified application workflows'
       ],
       actionLabel: 'Sign In as Student'
     },
@@ -47,8 +47,8 @@ export const PortalSelector: React.FC<PortalSelectorProps> = ({
       actionLabel: 'Sign In as Recruiter'
     },
     {
-      id: 'placement-cell',
-      badge: 'CAR COMMAND CENTER',
+      id: 'placement',
+      badge: 'PLACEMENT CELL',
       title: 'Placement Cell',
       description: 'Manage students, recruiters, drives and placement operations.',
       icon: <ShieldCheck className="w-7 h-7 text-[#CCAA68]" />,
@@ -70,10 +70,12 @@ export const PortalSelector: React.FC<PortalSelectorProps> = ({
       {/* Header Bar */}
       <header className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#20303A] border border-[#CCAA68]/50 flex items-center justify-center text-[#CCAA68] font-serif font-bold text-lg shadow-lg">
-            RV
-          </div>
-          <div>
+          <img 
+            src="/src/assets/rvu-logo-gold.svg" 
+            alt="RV University Logo" 
+            className="h-10 w-auto object-contain"
+          />
+          <div className="border-l border-[#CCAA68]/40 pl-3">
             <div className="text-[11px] font-mono tracking-widest text-[#CCAA68] uppercase font-bold">
               RV UNIVERSITY
             </div>

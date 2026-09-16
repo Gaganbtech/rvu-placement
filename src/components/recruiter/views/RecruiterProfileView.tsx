@@ -16,12 +16,12 @@ export const RecruiterProfileView: React.FC<RecruiterProfileViewProps> = ({
   const recruiter = store.activeRecruiter;
   const activeCompany = store.activeCompany;
 
-  const [name, setName] = useState(recruiter?.name || 'Rohit Deshmukh');
-  const [email, setEmail] = useState(recruiter?.email || 'rohit.d@technosphere.io');
-  const [phone, setPhone] = useState(recruiter?.phone || '+91 98860 11223');
-  const [designation, setDesignation] = useState(recruiter?.designation || 'Head of University Relations');
-  const [department, setDepartment] = useState(recruiter?.department || 'Global Talent Acquisition');
-  const [linkedIn, setLinkedIn] = useState(recruiter?.linkedIn || 'https://linkedin.com/in/rohitdeshmukh-talent');
+  const [name, setName] = useState(recruiter?.name || '');
+  const [email, setEmail] = useState(recruiter?.email || '');
+  const [phone, setPhone] = useState(recruiter?.phone || '');
+  const [designation, setDesignation] = useState(recruiter?.designation || '');
+  const [department, setDepartment] = useState(recruiter?.department || '');
+  const [linkedIn, setLinkedIn] = useState(recruiter?.linkedIn || '');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const handleSave = (e: React.FormEvent) => {

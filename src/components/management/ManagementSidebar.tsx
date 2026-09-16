@@ -1,24 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   Users,
-  Upload,
+  Building2,
+  Briefcase,
   Layers,
+  FileCheck,
+  CalendarCheck,
+  Award,
   Megaphone,
+  BarChart3,
+  FileSpreadsheet,
+  BookOpen,
+  HelpCircle,
+  History,
+  Settings,
   Sparkles,
   ArrowLeft,
-  GraduationCap,
   X,
   LogOut
 } from 'lucide-react';
 import { RVU_BRAND } from '../../data/rvu';
-import type { UserRole } from '../../data/platform/types';
 import { useAuth } from '../../context/AuthContext';
 import { SignOutConfirmDialog } from '../auth/SignOutConfirmDialog';
 
 interface ManagementSidebarProps {
   currentSubroute: string;
-  currentRole: UserRole;
+  currentRole?: string;
   pendingOffersCount?: number;
   pendingApprovalsCount?: number;
   openTicketsCount?: number;
@@ -28,73 +36,57 @@ interface ManagementSidebarProps {
   onCloseMobile?: () => void;
 }
 
-interface NavItem {
-  label: string;
-  route: string;
-  icon: React.ReactNode;
-  exact?: boolean;
-  badge?: number | string;
-  badgeColor?: string;
-}
-
-interface NavSection {
-  title: string;
-  items: NavItem[];
-}
-
 export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
   currentSubroute,
-  currentRole,
+  pendingOffersCount = 0,
+  pendingApprovalsCount = 0,
+  openTicketsCount = 0,
   onNavigate,
   onBackToPublic,
   isOpenMobile = false,
   onCloseMobile
 }) => {
-  const [showSignOutModal, setShowSignOutModal] = React.useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   const { user, logout } = useAuth();
-  const navSections: NavSection[] = [
-    {
-      title: 'PLACEMENT OPERATIONS',
-      items: [
-        {
-          label: 'Placement Analytics',
-          route: '/management',
-          icon: <LayoutDashboard className="w-4 h-4" />,
-          exact: true
-        },
-        {
-          label: 'Student Master & Resumes',
-          route: '/management/students',
-          icon: <Users className="w-4 h-4" />,
-          exact: true
-        },
-        {
-          label: 'Excel Roster Upload',
-          route: '/management/students/import',
-          icon: <Upload className="w-4 h-4" />
-        },
-        {
-          label: 'Drives & Opportunities',
-          route: '/management/drives',
-          icon: <Layers className="w-4 h-4" />
-        },
-        {
-          label: 'Announcements & Circulars',
-          route: '/management/announcements',
-          icon: <Megaphone className="w-4 h-4" />
-        },
-        {
-          label: 'AI Knowledge & Pvt Docs',
-          route: '/management/rag-docs',
-          icon: <Sparkles className="w-4 h-4 text-[#CCAA68]" />
-        }
-      ]
-    }
+
+  const navItems = [
+    { label: 'Dashboard', route: '/management', icon: <LayoutDashboard className="w-4 h-4" />, exact: true },
+    { label: 'Students', route: '/management/students', icon: <Users className="w-4 h-4" /> },
+    { 
+      label: 'Recruiters', 
+      route: '/management/recruiters', 
+      icon: <Building2 className="w-4 h-4" />,
+      badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : undefined
+    },
+    { label: 'Companies', route: '/management/companies', icon: <Building2 className="w-4 h-4" /> },
+    { label: 'Drives', route: '/management/drives', icon: <Layers className="w-4 h-4" /> },
+    { label: 'Opportunities', route: '/management/opportunities', icon: <Briefcase className="w-4 h-4" /> },
+    { label: 'Applications', route: '/management/applications', icon: <FileCheck className="w-4 h-4" /> },
+    { label: 'Interviews', route: '/management/interviews', icon: <CalendarCheck className="w-4 h-4" /> },
+    { 
+      label: 'Offers', 
+      route: '/management/offers', 
+      icon: <Award className="w-4 h-4" />,
+      badge: pendingOffersCount > 0 ? pendingOffersCount : undefined
+    },
+    { label: 'Communications', route: '/management/announcements', icon: <Megaphone className="w-4 h-4" /> },
+    { label: 'Analytics', route: '/management/analytics', icon: <BarChart3 className="w-4 h-4" /> },
+    { label: 'Reports', route: '/management/reports', icon: <FileSpreadsheet className="w-4 h-4" /> },
+    { label: 'Resources', route: '/management/resources', icon: <BookOpen className="w-4 h-4" /> },
+    { 
+      label: 'Support', 
+      route: '/management/support', 
+      icon: <HelpCircle className="w-4 h-4" />,
+      badge: openTicketsCount > 0 ? openTicketsCount : undefined
+    },
+    { label: 'Audit Log', route: '/management/audit-log', icon: <History className="w-4 h-4" /> },
+    { label: 'Settings', route: '/management/settings', icon: <Settings className="w-4 h-4" /> },
+    { label: 'AI Knowledge & Pvt Docs', route: '/management/rag-docs', icon: <Sparkles className="w-4 h-4 text-[#CCAA68]" /> }
   ];
 
-  const isActive = (itemRoute: string, exact = false) => {
-    if (exact) {
-      return currentSubroute === itemRoute || currentSubroute === `${itemRoute}/`;
+  const isActive = (itemRoute: string, exact: boolean = false) => {
+    if (exact || itemRoute === '/management') {
+      return currentSubroute === '/management' || currentSubroute === '/management/';
     }
     return currentSubroute.startsWith(itemRoute);
   };
@@ -104,43 +96,35 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
     if (onCloseMobile) onCloseMobile();
   };
 
-  const getRoleLabel = () => {
-    switch (currentRole) {
-      case 'SUPER_ADMIN':
-        return 'SUPER ADMIN';
-      case 'COORDINATOR':
-        return 'COORDINATOR';
-      case 'CAR_ADMIN':
-      default:
-        return 'PLACEMENT ADMIN';
-    }
-  };
-
   const sidebarContent = (
     <div className="flex flex-col h-full bg-[#111A22] border-r border-gold-border/40 text-rvu-text select-none">
       
-      {/* Brand Header */}
+      {/* Brand Header with Official RV University Logo */}
       <div className="p-4 border-b border-gold-border/30 bg-[#0C141B]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gold/15 border border-gold/60 flex items-center justify-center text-gold font-serif font-bold text-lg shadow-gold-glow">
-              RV
-            </div>
-            <div>
+          <div className="flex items-center gap-2.5">
+            <img 
+              src="/src/assets/rvu-logo-gold.svg" 
+              alt="RV University Logo" 
+              className="h-9 w-auto object-contain shrink-0" 
+            />
+            <div className="border-l border-[#CCAA68]/40 pl-2.5">
               <div className="text-[10px] font-mono tracking-widest text-gold uppercase font-bold">
                 RV UNIVERSITY
               </div>
-              <div className="text-sm font-bold text-white font-display tracking-tight flex items-center gap-1.5">
-                <span>COMMAND CENTER</span>
+              <div className="text-xs font-bold text-white font-display tracking-tight flex items-center gap-1.5">
+                <span>CAREER HUB</span>
+                <span className="text-[9px] font-mono font-medium px-1.5 py-0.2 rounded bg-gold/20 text-gold border border-gold/30">
+                  PLACEMENT CELL
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Close button on mobile */}
           {onCloseMobile && (
             <button
               onClick={onCloseMobile}
-              className="md:hidden p-1.5 rounded-lg text-rvu-muted hover:text-white hover:bg-white/5 transition-colors"
+              className="lg:hidden p-1.5 rounded-lg text-rvu-muted hover:text-white hover:bg-white/5 transition-colors"
               aria-label="Close menu"
             >
               <X className="w-5 h-5" />
@@ -148,69 +132,60 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
           )}
         </div>
 
-        {/* Tagline & Sub-bar */}
-        <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
+        <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-rvu-subtle font-mono">
           <span className="italic font-serif text-gold-light">"{RVU_BRAND.tagline}"</span>
-          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-semibold bg-gold/15 text-gold border border-gold/30">
-            {getRoleLabel()}
-          </span>
+          <span className="text-emerald-400 font-medium">Placement Governance</span>
         </div>
       </div>
 
-      {/* Main Scrollable Nav Links */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5 custom-scrollbar">
-        {navSections.map((section) => (
-          <div key={section.title} className="space-y-0.5">
-            <div className="px-3 pb-1 text-[9px] font-mono text-rvu-subtle uppercase tracking-wider font-semibold">
-              {section.title}
-            </div>
-            {section.items.map((item) => {
-              const active = isActive(item.route, item.exact);
-              return (
-                <button
-                  key={item.route}
-                  onClick={() => handleItemClick(item.route)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                    active
-                      ? 'bg-gold/15 text-gold border border-gold/40 shadow-sm font-semibold'
-                      : 'text-rvu-muted hover:text-white hover:bg-white/5 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <span className={active ? 'text-gold' : 'text-rvu-subtle'}>
-                      {item.icon}
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </div>
-                  {item.badge !== undefined && (
-                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${item.badgeColor || 'bg-gold/20 text-gold border-gold/30'} font-bold`}>
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+      {/* Main Navigation Links */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 custom-scrollbar">
+        <div className="px-3 pb-1 text-[10px] font-mono text-gold uppercase tracking-wider font-semibold">
+          Placement Cell
+        </div>
+
+        {navItems.map((item) => {
+          const active = isActive(item.route, item.exact);
+          return (
+            <button
+              key={item.route}
+              onClick={() => handleItemClick(item.route)}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                active
+                  ? 'bg-gold/15 text-gold border border-gold/40 shadow-sm font-semibold'
+                  : 'text-rvu-muted hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 truncate">
+                <span className={active ? 'text-gold' : 'text-rvu-subtle'}>
+                  {item.icon}
+                </span>
+                <span className="truncate">{item.label}</span>
+              </div>
+              {item.badge !== undefined && (
+                <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-gold text-navy-dark shrink-0">
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        {/* User Identity Info */}
+        <div className="mt-4 p-3 rounded-xl bg-[#0F1822] border border-gold-border/30 text-[11px] space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono text-rvu-subtle uppercase">Authenticated As</span>
+            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-gold/20 text-gold border border-gold/40">
+              PLACEMENT CELL
+            </span>
           </div>
-        ))}
+          <div className="font-semibold text-white truncate">{user?.displayName || 'Placement Team Member'}</div>
+          <div className="text-[10px] font-mono text-gold truncate">{user?.email || 'placement@rvu.edu.in'}</div>
+        </div>
       </div>
 
-      {/* Portal Switchers & Footer */}
-      <div className="p-3 border-t border-gold-border/30 bg-[#0C141B] space-y-1.5">
-        
-        {/* Switch to Student Portal */}
-        <button
-          onClick={() => onNavigate('/student')}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-rvu-text bg-navy-card/80 hover:bg-gold/10 hover:text-gold border border-gold-border/40 transition-colors"
-          title="Switch to Student Portal view"
-        >
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-gold" />
-            <span>Student Portal</span>
-          </div>
-          <span className="text-[10px] font-mono text-rvu-subtle">Preview</span>
-        </button>
-
-        {/* Back to Public Site */}
+      {/* Footer Nav / Actions */}
+      <div className="p-3 border-t border-gold-border/30 bg-[#0C141B] space-y-1">
         <button
           onClick={onBackToPublic}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-rvu-muted hover:text-white hover:bg-white/5 transition-colors"
@@ -219,7 +194,6 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
           <span>Back to Public Portal</span>
         </button>
 
-        {/* Sign Out */}
         <button
           onClick={() => setShowSignOutModal(true)}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
@@ -251,17 +225,20 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
           </div>
         </div>
       )}
+
       {/* Sign Out Confirmation Modal */}
       <SignOutConfirmDialog
         isOpen={showSignOutModal}
-        userEmail={user?.email || 'car.placement@rvu.edu.in'}
+        userEmail={user?.email || 'placement@rvu.edu.in'}
         onCancel={() => setShowSignOutModal(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setShowSignOutModal(false);
-          logout();
-          onBackToPublic();
+          await logout();
+          onNavigate('/login?role=placement');
         }}
       />
     </>
   );
 };
+
+export default ManagementSidebar;

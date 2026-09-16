@@ -7,7 +7,9 @@ import {
   BookmarkCheck,
   Calendar,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Building2,
+  Award
 } from 'lucide-react';
 import type { 
   Student, 
@@ -208,6 +210,67 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
       />
 
       {/* ==================================================== */}
+      {/* 5.1 CORE WORKSPACE CARDS */}
+      {/* ==================================================== */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div 
+          onClick={() => onNavigate('/student/applications')}
+          className="p-4 rounded-xl bg-navy-surface border border-gold-border/30 hover:border-gold/60 cursor-pointer transition-all hover:-translate-y-0.5 shadow-card"
+        >
+          <div className="flex items-center justify-between text-rvu-muted mb-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider">Active Applications</span>
+            <FileText className="w-4 h-4 text-gold" />
+          </div>
+          <div className="text-2xl font-bold font-mono text-white">{totalApplied}</div>
+          <div className="text-[10px] text-rvu-subtle mt-1">
+            {totalApplied === 0 ? 'No applications yet' : `${inReviewCount} in review`}
+          </div>
+        </div>
+
+        <div 
+          onClick={() => onNavigate('/student/drives')}
+          className="p-4 rounded-xl bg-navy-surface border border-gold-border/30 hover:border-gold/60 cursor-pointer transition-all hover:-translate-y-0.5 shadow-card"
+        >
+          <div className="flex items-center justify-between text-rvu-muted mb-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider">Upcoming Drives</span>
+            <Building2 className="w-4 h-4 text-sky-400" />
+          </div>
+          <div className="text-2xl font-bold font-mono text-white">{placementDrives.length}</div>
+          <div className="text-[10px] text-rvu-subtle mt-1">
+            {placementDrives.length === 0 ? 'No placement drives' : 'Campus recruitment'}
+          </div>
+        </div>
+
+        <div 
+          onClick={() => onNavigate('/student/calendar')}
+          className="p-4 rounded-xl bg-navy-surface border border-gold-border/30 hover:border-gold/60 cursor-pointer transition-all hover:-translate-y-0.5 shadow-card"
+        >
+          <div className="flex items-center justify-between text-rvu-muted mb-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider">Upcoming Interviews</span>
+            <Calendar className="w-4 h-4 text-purple-400" />
+          </div>
+          <div className="text-2xl font-bold font-mono text-white">{interviewCount}</div>
+          <div className="text-[10px] text-rvu-subtle mt-1">
+            {interviewCount === 0 ? 'No upcoming interviews' : 'Live round schedule'}
+          </div>
+        </div>
+
+        <div 
+          onClick={() => onNavigate('/student/offers')}
+          className="p-4 rounded-xl bg-navy-surface border border-gold-border/30 hover:border-gold/60 cursor-pointer transition-all hover:-translate-y-0.5 shadow-card"
+        >
+          <div className="flex items-center justify-between text-rvu-muted mb-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider">Offers</span>
+            <Award className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="text-2xl font-bold font-mono text-white">{offerCount}</div>
+          <div className="text-[10px] text-rvu-subtle mt-1">
+            {offerCount === 0 ? 'No offers received' : 'Verified letters'}
+          </div>
+        </div>
+      </div>
+
+      {/* ==================================================== */}
       {/* 4.3 OPPORTUNITY MATCHES (RECOMMENDED FOR YOU) */}
       {/* ==================================================== */}
       <div className="space-y-4">
@@ -230,7 +293,13 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {publishedOpps.length === 0 ? (
+          <div className="p-8 rounded-xl bg-navy-surface border border-dashed border-gold-border/40 text-center space-y-2">
+            <p className="text-sm font-semibold text-white">No active opportunities</p>
+            <p className="text-xs text-rvu-muted">Explore opportunities to start your career journey.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {publishedOpps.map((opp) => {
             const match = StudentIntelligenceService.calculateOpportunityMatch(student, opp);
             const app = getApplicationForOpp(opp.id);
@@ -326,6 +395,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
             );
           })}
         </div>
+        )}
       </div>
 
       {/* ==================================================== */}

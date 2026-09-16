@@ -3,12 +3,19 @@ import {
   LayoutDashboard, 
   Briefcase, 
   FileText, 
+  Building2,
+  Award,
+  BookOpen,
+  Sparkles,
+  Calendar,
+  Library,
   FolderLock, 
   UserCheck, 
   Bell, 
+  HelpCircle,
+  Settings,
   ArrowLeft, 
   LogOut,
-  ShieldCheck,
   X
 } from 'lucide-react';
 import { RVU_BRAND } from '../../data/rvu';
@@ -35,43 +42,26 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
   const { user, logout } = useAuth();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-  const navGroups = [
-    {
-      title: 'CORE PORTAL',
-      items: [
-        {
-          label: 'Dashboard',
-          route: '/student',
-          icon: <LayoutDashboard className="w-4 h-4" />
-        },
-        {
-          label: 'Opportunities & Drives',
-          route: '/student/opportunities',
-          icon: <Briefcase className="w-4 h-4" />
-        },
-        {
-          label: 'My Applications',
-          route: '/student/applications',
-          icon: <FileText className="w-4 h-4" />
-        },
-        {
-          label: 'Resume & Documents',
-          route: '/student/documents',
-          icon: <FolderLock className="w-4 h-4" />
-        },
-        {
-          label: 'My Profile',
-          route: '/student/profile',
-          icon: <UserCheck className="w-4 h-4" />
-        },
-        {
-          label: 'Notifications',
-          route: '/student/notifications',
-          icon: <Bell className="w-4 h-4" />,
-          badge: unreadNotifications > 0 ? unreadNotifications : undefined
-        }
-      ]
-    }
+  const navItems = [
+    { label: 'Dashboard', route: '/student', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { label: 'Opportunities', route: '/student/opportunities', icon: <Briefcase className="w-4 h-4" /> },
+    { label: 'Applications', route: '/student/applications', icon: <FileText className="w-4 h-4" /> },
+    { label: 'Drives', route: '/student/drives', icon: <Building2 className="w-4 h-4" /> },
+    { label: 'Offers', route: '/student/offers', icon: <Award className="w-4 h-4" /> },
+    { label: 'Preparation', route: '/student/preparation', icon: <BookOpen className="w-4 h-4" /> },
+    { label: 'Skills', route: '/student/skills', icon: <Sparkles className="w-4 h-4" /> },
+    { label: 'Calendar', route: '/student/calendar', icon: <Calendar className="w-4 h-4" /> },
+    { label: 'Resources', route: '/student/resources', icon: <Library className="w-4 h-4" /> },
+    { label: 'Documents', route: '/student/documents', icon: <FolderLock className="w-4 h-4" /> },
+    { label: 'Profile', route: '/student/profile', icon: <UserCheck className="w-4 h-4" /> },
+    { 
+      label: 'Notifications', 
+      route: '/student/notifications', 
+      icon: <Bell className="w-4 h-4" />,
+      badge: unreadNotifications > 0 ? unreadNotifications : undefined
+    },
+    { label: 'Support', route: '/student/support', icon: <HelpCircle className="w-4 h-4" /> },
+    { label: 'Settings', route: '/student/settings', icon: <Settings className="w-4 h-4" /> }
   ];
 
   const isActive = (itemRoute: string) => {
@@ -89,20 +79,22 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
   const sidebarContent = (
     <div className="flex flex-col h-full bg-[#131F2A] border-r border-gold-border/40 text-rvu-text select-none">
       
-      {/* Brand Header */}
-      <div className="p-5 border-b border-gold-border/30 bg-[#0E1720]">
+      {/* Brand Header with Official RV University Logo */}
+      <div className="p-4 border-b border-gold-border/30 bg-[#0E1720]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gold/15 border border-gold/50 flex items-center justify-center text-gold font-serif font-bold text-base shadow-gold-glow">
-              RV
-            </div>
-            <div>
-              <div className="text-[11px] font-mono tracking-widest text-gold uppercase font-bold">
+          <div className="flex items-center gap-2.5">
+            <img 
+              src="/src/assets/rvu-logo-gold.svg" 
+              alt="RV University Logo" 
+              className="h-9 w-auto object-contain shrink-0" 
+            />
+            <div className="border-l border-[#CCAA68]/40 pl-2.5">
+              <div className="text-[10px] font-mono tracking-widest text-[#CCAA68] uppercase font-bold">
                 RV UNIVERSITY
               </div>
-              <div className="text-sm font-bold text-white font-display tracking-tight flex items-center gap-1.5">
+              <div className="text-xs font-bold text-white font-display tracking-tight flex items-center gap-1.5">
                 <span>CAREER HUB</span>
-                <span className="text-[9px] font-mono font-medium px-1.5 py-0.2 rounded bg-gold/20 text-gold border border-gold/30">
+                <span className="text-[9px] font-mono font-medium px-1.5 py-0.2 rounded bg-[#CCAA68]/20 text-[#D8B978] border border-[#CCAA68]/30">
                   STUDENT
                 </span>
               </div>
@@ -130,51 +122,49 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
         </div>
       </div>
 
-      {/* Main Scrollable Nav Links Organized by 5 Groups */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
-        {navGroups.map((group) => (
-          <div key={group.title} className="space-y-1">
-            <div className="px-3 pb-1 text-[10px] font-mono text-rvu-subtle uppercase tracking-wider font-semibold">
-              {group.title}
-            </div>
-            {group.items.map((item) => {
-              const active = isActive(item.route);
-              return (
-                <button
-                  key={item.route}
-                  onClick={() => handleItemClick(item.route)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                    active
-                      ? 'bg-gold/15 text-gold border border-gold/40 shadow-sm font-semibold'
-                      : 'text-rvu-muted hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 truncate">
-                    <span className={active ? 'text-gold' : 'text-rvu-subtle'}>
-                      {item.icon}
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-gold text-navy-dark shrink-0">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+      {/* Main Scrollable Nav Links */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 custom-scrollbar">
+        <div className="px-3 pb-1 text-[10px] font-mono text-[#CCAA68] uppercase tracking-wider font-semibold">
+          Student Career Hub
+        </div>
 
-        {/* Placement Office Authority Badge */}
-        <div className="p-3 rounded-xl bg-[#0F1822] border border-gold-border/30 text-[11px] space-y-1.5">
-          <div className="flex items-center gap-1.5 text-gold font-semibold text-xs">
-            <ShieldCheck className="w-3.5 h-3.5 text-gold" />
-            <span>CAR Authority Layer</span>
+        {navItems.map((item) => {
+          const active = isActive(item.route);
+          return (
+            <button
+              key={item.route}
+              onClick={() => handleItemClick(item.route)}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                active
+                  ? 'bg-gold/15 text-gold border border-gold/40 shadow-sm font-semibold'
+                  : 'text-rvu-muted hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 truncate">
+                <span className={active ? 'text-gold' : 'text-rvu-subtle'}>
+                  {item.icon}
+                </span>
+                <span className="truncate">{item.label}</span>
+              </div>
+              {item.badge !== undefined && (
+                <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-gold text-navy-dark shrink-0">
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        {/* User Identity Info */}
+        <div className="mt-4 p-3 rounded-xl bg-[#0F1822] border border-gold-border/30 text-[11px] space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono text-[#AEB7BC] uppercase">Authenticated As</span>
+            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-[#CCAA68]/20 text-[#D8B978] border border-[#CCAA68]/40">
+              STUDENT
+            </span>
           </div>
-          <p className="text-[11px] text-rvu-muted leading-relaxed">
-            Data synced with Central Placement & SIS. Actions are auditable.
-          </p>
+          <div className="font-semibold text-white truncate">{user?.displayName || 'Scholar'}</div>
+          <div className="text-[10px] font-mono text-[#CCAA68] truncate">{user?.email || 'student@rvu.edu.in'}</div>
         </div>
       </div>
 
@@ -225,12 +215,14 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
         isOpen={showSignOutModal}
         userEmail={user?.email}
         onCancel={() => setShowSignOutModal(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setShowSignOutModal(false);
-          logout();
-          onBackToPublic();
+          await logout();
+          onNavigate('/login?role=student');
         }}
       />
     </>
   );
 };
+
+export default StudentSidebar;

@@ -1,0 +1,23 @@
+# Supabase Project Configuration for RVU Career Hub
+project_id = "pnzuudpptjyjabtbmsti"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["https://localhost:5173"]
+jwt_expiry = 3600
+enable_signup = false # Strict placement cell controlled user provisioning
+
+[edge_runtime]
+enabled = true
+port = 54323
+
+[functions.admin-user-provisioning]
+verify_jwt = true

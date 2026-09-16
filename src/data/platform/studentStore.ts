@@ -45,7 +45,8 @@ import {
   DEFAULT_POLICY_SETTINGS,
   INITIAL_ASSESSMENTS,
   INITIAL_RECRUITER_MESSAGES,
-  INITIAL_RECRUITER_NOTIFICATIONS
+  INITIAL_RECRUITER_NOTIFICATIONS,
+  EMPTY_STUDENT
 } from './demoData';
 
 class PlatformStore {
@@ -68,23 +69,14 @@ class PlatformStore {
   private currentRole: UserRole = 'PLACEMENT_ADMIN';
 
   // Recruiter Workspace State
-  private activeRecruiterId: string = 'REC-001';
+  private activeRecruiterId: string = '';
   private assessments: RecruiterAssessment[] = [...INITIAL_ASSESSMENTS];
   private recruiterMessages: RecruiterMessage[] = [...INITIAL_RECRUITER_MESSAGES];
   private recruiterNotifications: RecruiterNotification[] = [...INITIAL_RECRUITER_NOTIFICATIONS];
 
   // Student Career Operating System State
-  private savedOpportunityIds: string[] = ['OPP-001'];
-  private completedPreparationTaskIds: string[] = [
-    'task-apt-1', 'task-apt-2', 'task-apt-3',
-    'task-tech-1', 'task-tech-2',
-    'task-code-1',
-    'task-comm-1', 'task-comm-2',
-    'task-int-1',
-    'task-res-1', 'task-res-2', 'task-res-3',
-    'task-gd-1',
-    'task-dom-1'
-  ];
+  private savedOpportunityIds: string[] = [];
+  private completedPreparationTaskIds: string[] = [];
 
   private listeners: Set<() => void> = new Set();
 
@@ -142,7 +134,15 @@ class PlatformStore {
       const match = this.students.find(s => s.email.toLowerCase() === email.toLowerCase());
       if (match) return match;
     }
-    return this.students.find(s => s.email.toLowerCase() === 'gagana.btech23@rvu.edu.in') || this.students.find(s => s.id === 'RVU2023CSE042') || this.students[0];
+    if (this.students.length > 0) return this.students[0];
+
+    const studentName = email ? email.split('@')[0].replace(/[._-]+/g, ' ').toUpperCase() : 'Authenticated Student';
+    return {
+      ...EMPTY_STUDENT,
+      id: 'STUDENT-ACTIVE',
+      name: studentName,
+      email: email || 'student@rvu.edu.in'
+    };
   }
 
   public getStudentById(id: string): Student | undefined {
@@ -1209,7 +1209,7 @@ class PlatformStore {
       id,
       recruiterId: recruiter?.id || 'REC-001',
       companyId: company?.id || 'COMP-001',
-      companyName: company?.name || 'TechnoSphere Systems',
+      companyName: company?.name || 'Hiring Partner',
       companyLogo: company?.logoUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=128',
       role: oppData.role || 'Software Development Engineer',
       type: oppData.type || 'Placement',
@@ -1365,7 +1365,7 @@ class PlatformStore {
     const newInterview: InterviewScheduleItem = {
       id,
       companyId: company?.id || 'COMP-001',
-      companyName: company?.name || 'TechnoSphere Systems',
+      companyName: company?.name || 'Hiring Partner',
       ...itemData
     };
 
@@ -1413,7 +1413,7 @@ class PlatformStore {
       applicationId: offerData.applicationId,
       studentId: offerData.studentId,
       studentName: student?.name || 'RVU Candidate',
-      companyName: company?.name || 'TechnoSphere Systems',
+      companyName: company?.name || 'Hiring Partner',
       companyLogo: company?.logoUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=128',
       role: offerData.role,
       ctcLpa: offerData.ctcLpa,
@@ -1524,7 +1524,7 @@ class PlatformStore {
     const newRecruiter: RecruiterAccount = {
       id,
       companyId: company?.id || 'COMP-001',
-      companyName: company?.name || 'TechnoSphere Systems',
+      companyName: company?.name || 'Hiring Partner',
       name: member.name,
       email: member.email,
       phone: '+91 98000 00000',

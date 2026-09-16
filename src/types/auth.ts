@@ -1,11 +1,14 @@
-// Authentication and User State Types for RVU CAREER HUB
+// Canonical User Roles for RVU CAREER HUB
+export type UserRole = 'student' | 'recruiter' | 'placement';
 
-export type AuthRole = 'student' | 'recruiter' | 'placement-cell';
+// Backward-compatible role alias accepting legacy strings
+export type AuthRole = UserRole | 'placement-cell' | 'management';
 
 export interface AuthUser {
-  id: string;
+  id: string; // auth.users id
+  profileId?: string; // profiles table id
   email: string;
-  role: AuthRole;
+  role: UserRole;
   displayName: string;
   avatar?: string;
   isActive: boolean;
@@ -87,8 +90,8 @@ export interface SessionInfo {
 }
 
 export interface LoginCredentials {
-  identifier: string;
   email?: string;
+  identifier?: string; // Backward-compatible alias for email
   password?: string;
   role?: AuthRole | 'management';
   rememberMe?: boolean;
@@ -97,12 +100,36 @@ export interface LoginCredentials {
 
 export interface SafeAuthSession {
   authenticated: boolean;
-  identifier: string;
-  portal: AuthRole | 'management';
-  role: AuthRole;
-  displayName: string;
   userId: string;
+  role: UserRole;
+  identifier: string;
+  portal?: string;
+  displayName: string;
   createdAt: string;
+  expiresAt: number;
+  lastActiveAt: number;
+}
+
+export type SecurityAuditEventType = 
+  | 'LOGIN_SUCCESS'
+  | 'LOGIN_FAILED'
+  | 'LOGOUT'
+  | 'UNAUTHORIZED_ACCESS_ATTEMPT'
+  | 'ROLE_ESCALATION_BLOCKED'
+  | 'SESSION_EXPIRED'
+  | 'IDLE_TIMEOUT'
+  | 'SESSION_TAMPER_DETECTED';
+
+export interface SecurityAuditRecord {
+  id: string;
+  timestamp: string;
+  eventType: SecurityAuditEventType;
+  actorId?: string;
+  actorRole?: UserRole | 'unauthenticated';
+  targetPath?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  details: string;
 }
 
 export interface LoginResult {
@@ -118,39 +145,8 @@ export interface ChangePasswordResult {
   error?: string;
 }
 
-export interface MagicLinkRequest {
-  email: string;
-  role: AuthRole;
-}
-
-export interface MagicLinkSendResult {
+export interface PasswordResetResult {
   success: boolean;
   message: string;
-  provider: 'supabase' | 'development_preview';
-  email: string;
-  role: AuthRole;
-  expiresInSeconds?: number;
-  previewConfirmationUrl?: string;
-  verificationUrl?: string;
-  cooldownSeconds?: number;
-  error?: string;
-  isConfigMissing?: boolean;
-}
-
-export interface AuthCallbackOptions {
-  token?: string;
-  role?: AuthRole;
-  searchParams?: URLSearchParams;
-  hash?: string;
-  hashParams?: URLSearchParams;
-}
-
-export interface AuthCallbackResult {
-  success: boolean;
-  user?: AuthUser;
-  redirectRoute?: string;
-  targetRoute?: string;
   error?: string;
 }
-
-

@@ -11,7 +11,7 @@ import {
   Lock 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { authService, INITIAL_DEFAULT_PASSWORD } from '../../services/authService';
+import { evaluatePasswordStrength } from '../../services/authService';
 
 interface FirstLoginPasswordModalProps {
   onPasswordChanged: () => void;
@@ -32,14 +32,14 @@ export const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = (
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   // Real-time strength evaluation
-  const strength = authService.evaluatePasswordStrength(newPassword);
+  const strength = evaluatePasswordStrength(newPassword);
 
   const checks = {
     length: newPassword.length >= 8,
     mixedCase: /[a-z]/.test(newPassword) && /[A-Z]/.test(newPassword),
     hasNumber: /\d/.test(newPassword),
     hasSymbol: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword),
-    different: newPassword.length > 0 && newPassword !== INITIAL_DEFAULT_PASSWORD
+    match: newPassword.length > 0 && newPassword === confirmPassword
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,11 +48,6 @@ export const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = (
 
     if (!newPassword) {
       setErrorMsg('New password is required.');
-      return;
-    }
-
-    if (newPassword === INITIAL_DEFAULT_PASSWORD) {
-      setErrorMsg('New password must differ from your initial default password.');
       return;
     }
 
@@ -72,7 +67,7 @@ export const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = (
     }
 
     try {
-      await changePassword(INITIAL_DEFAULT_PASSWORD, newPassword);
+      await changePassword('', newPassword);
       setSuccessNotice('Your password has been updated successfully.');
       setTimeout(() => {
         onPasswordChanged();
@@ -229,9 +224,9 @@ export const FirstLoginPasswordModal: React.FC<FirstLoginPasswordModalProps> = (
                 <Check className={`w-3 h-3 ${checks.hasNumber ? 'text-emerald-400' : 'text-white/20'}`} />
                 <span>At least 1 number</span>
               </div>
-              <div className={`flex items-center gap-1.5 ${checks.different ? 'text-emerald-400 font-semibold' : ''}`}>
-                <Check className={`w-3 h-3 ${checks.different ? 'text-emerald-400' : 'text-white/20'}`} />
-                <span>Differs from default</span>
+              <div className={`flex items-center gap-1.5 ${checks.match ? 'text-emerald-400 font-semibold' : ''}`}>
+                <Check className={`w-3 h-3 ${checks.match ? 'text-emerald-400' : 'text-white/20'}`} />
+                <span>Passwords match</span>
               </div>
             </div>
 

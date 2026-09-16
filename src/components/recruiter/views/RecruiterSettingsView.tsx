@@ -205,7 +205,7 @@ export const RecruiterSettingsView: React.FC<RecruiterSettingsViewProps> = ({
                 <div className="p-3 rounded-xl bg-[#101A22] border border-white/5 space-y-1">
                   <span className="text-[10px] text-gray-400 uppercase">User ID / Email</span>
                   <div className="text-sm font-bold text-white break-all">
-                    {user?.email || activeRecruiter?.email || 'recruiter@technosphere.io'}
+                    {user?.email || activeRecruiter?.email || 'recruiter@company.com'}
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-[#101A22] border border-white/5 space-y-1">
@@ -374,7 +374,7 @@ export const RecruiterSettingsView: React.FC<RecruiterSettingsViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-3.5 rounded-xl bg-[#20303A] space-y-1">
                 <span className="text-[10px] text-gray-400 uppercase">Registered Corporate Entity</span>
-                <div className="font-bold text-white text-sm">{activeRecruiter?.companyName || 'TechnoSphere Systems'}</div>
+                <div className="font-bold text-white text-sm">{activeRecruiter?.companyName || user?.companyName || 'Corporate Partner'}</div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#20303A] space-y-1">

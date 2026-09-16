@@ -395,6 +395,10 @@ export const ManagementDashboardView: React.FC<ManagementDashboardViewProps> = (
                 <span className="font-mono font-bold text-white">{HISTORICAL_PLACEMENT_2025_26.totalOffers}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
+                <span className="text-rvu-muted">Multiple Offers Rate:</span>
+                <span className="font-mono font-bold text-white">{HISTORICAL_PLACEMENT_2025_26.multipleOffersRate}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-rvu-muted">Recruiters Participated:</span>
                 <span className="font-mono font-bold text-white">{HISTORICAL_PLACEMENT_2025_26.participatingRecruiters}</span>
               </div>

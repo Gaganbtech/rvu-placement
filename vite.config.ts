@@ -4,4 +4,11 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    headers: {
+      'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin'
+    }
+  }
 })

@@ -124,19 +124,10 @@ export const PlacementAIChatbot: React.FC<PlacementAIChatbotProps> = ({
     ]);
   };
 
-  const handleRoleChange = (newRole: UserRoleContext) => {
-    setActiveRole(newRole);
-    const initial = queryPlacementRAG('hello', newRole);
-    setMessages([
-      {
-        id: `msg-role-${Date.now()}`,
-        sender: 'assistant',
-        text: `Switched RAG context to **${newRole.toUpperCase()}**. ${initial.answer}`,
-        citations: initial.citations,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-    ]);
-  };
+  // Keep activeRole strictly synced with currentRole prop
+  useEffect(() => {
+    setActiveRole(currentRole);
+  }, [currentRole]);
 
   const followups = getSuggestedFollowupsForRole(activeRole);
 
@@ -220,24 +211,15 @@ export const PlacementAIChatbot: React.FC<PlacementAIChatbotProps> = ({
             </div>
           </div>
 
-          {/* Role Filter & Quick Bar */}
+          {/* Locked Active Role Scope Bar */}
           <div className="px-3 py-2 bg-[#0C141B] border-b border-white/5 flex items-center justify-between text-xs">
-            <span className="text-[11px] text-gray-400 font-mono">Knowledge Lens:</span>
-            <div className="flex items-center gap-1">
-              {(['student', 'recruiter', 'management'] as UserRoleContext[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => handleRoleChange(r)}
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-mono flex items-center gap-1 transition-all ${
-                    activeRole === r
-                      ? 'bg-[#CCAA68]/20 text-[#CCAA68] border border-[#CCAA68]/50 font-semibold'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  {getRoleIcon(r)}
-                  <span className="capitalize">{r}</span>
-                </button>
-              ))}
+            <span className="text-[11px] text-gray-400 font-mono">Active Scope:</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#CCAA68]/15 border border-[#CCAA68]/40 text-[#CCAA68] text-[10px] font-mono font-semibold">
+              {getRoleIcon(activeRole)}
+              <span className="uppercase tracking-wider">
+                {activeRole === 'management' ? 'PLACEMENT CELL' : activeRole}
+              </span>
+              <span className="text-[9px] text-emerald-400 font-sans font-normal">• Verified Session</span>
             </div>
           </div>
 

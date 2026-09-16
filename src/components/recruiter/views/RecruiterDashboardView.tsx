@@ -66,7 +66,7 @@ export const RecruiterDashboardView: React.FC<RecruiterDashboardViewProps> = ({
               Welcome, {activeRecruiter?.name || 'Recruiter'}
             </h1>
             <p className="text-sm text-gray-300">
-              Partner organization: <strong className="text-white font-medium">{activeCompany?.name || 'TechnoSphere Systems'}</strong>. Manage job postings, review pre-screened RVU engineering & science candidates, conduct proctored assessments, schedule interviews, and issue verified offers.
+              Partner organization: <strong className="text-white font-medium">{activeCompany?.name || 'Hiring Organization'}</strong>. Manage job postings, review pre-screened RVU engineering & science candidates, conduct proctored assessments, schedule interviews, and issue verified offers.
             </p>
             <div className="pt-1 flex items-center gap-3 text-xs text-gray-400">
               <span className="flex items-center gap-1 text-emerald-400 font-medium">

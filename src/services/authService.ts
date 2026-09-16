@@ -1,76 +1,19 @@
 // src/services/authService.ts
-// Centralized Authentication Service for RVU CAREER HUB
-// Supports Normal User ID + Password Authentication with Local Demo Mode
+// Production Supabase Authentication Service for RVU CAREER HUB
+// Enforces real Supabase email/password authentication, database-driven profiles, and zero demo bypass.
 
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase, isSupabaseConfigured, getSupabaseConfigError } from '../lib/supabase';
 import type { 
-  AuthRole, 
+  UserRole, 
   AuthUser, 
   LoginCredentials, 
-  LoginResult,
-  SafeAuthSession,
+  LoginResult, 
   ChangePasswordResult,
-  UserPreferences,
-  SessionInfo
+  PasswordResetResult
 } from '../types/auth';
+import type { ProfileRow } from '../types/database';
 
-// Session storage keys (NEVER store passwords or secrets)
-export const INITIAL_DEFAULT_PASSWORD = 'welcome2placement';
-
-export interface PasswordStrengthResult {
-  score: number;
-  label: 'Weak' | 'Fair' | 'Strong';
-  message?: string;
-}
-
-const SAFE_SESSION_KEY = 'rvu_safe_auth_session';
-const REMEMBERED_IDENTIFIER_KEY = 'rvu_remembered_identifier';
-const AUTH_PREFS_KEY = 'rvu_user_preferences';
-
-// Safe cross-environment storage helper (handles browser sessionStorage/localStorage and Node.js testing/SSR)
-const memoryStorage: Record<string, string> = {};
-
-function getSafeStorageItem(key: string): string | null {
-  if (typeof window !== 'undefined') {
-    try {
-      return sessionStorage.getItem(key) || localStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  }
-  return memoryStorage[key] || null;
-}
-
-function setSafeStorageItem(key: string, value: string, persist: boolean = false): void {
-  if (typeof window !== 'undefined') {
-    try {
-      sessionStorage.setItem(key, value);
-      if (persist) {
-        localStorage.setItem(key, value);
-      } else {
-        localStorage.removeItem(key);
-      }
-    } catch {
-      // Safe fallback
-    }
-  } else {
-    memoryStorage[key] = value;
-  }
-}
-
-function removeSafeStorageItem(key: string): void {
-  if (typeof window !== 'undefined') {
-    try {
-      sessionStorage.removeItem(key);
-      localStorage.removeItem(key);
-    } catch {
-      // Safe fallback
-    }
-  } else {
-    delete memoryStorage[key];
-  }
-}
-
-// Helper to derive a clean, friendly display name from an email address or user ID
 export function deriveDisplayNameFromEmail(identifier: string): string {
   const [localPart] = (identifier || '').split('@');
   if (!localPart) return 'Institutional User';
@@ -83,7 +26,6 @@ export function deriveDisplayNameFromEmail(identifier: string): string {
     .join(' ');
 }
 
-// Helper to derive 2-letter initials for avatars
 export function deriveInitialsFromEmail(identifier: string, displayName?: string): string {
   if (displayName && displayName.trim()) {
     const parts = displayName.trim().split(/\s+/);
@@ -96,368 +38,300 @@ export function deriveInitialsFromEmail(identifier: string, displayName?: string
   return (localPart || 'RV').slice(0, 2).toUpperCase();
 }
 
-function getDefaultPreferences(): UserPreferences {
-  return {
-    theme: 'dark',
-    reducedMotion: false,
-    density: 'comfortable',
-    notifications: {
-      applicationUpdates: true,
-      interviewUpdates: true,
-      placementDrives: true,
-      deadlines: true,
-      offers: true,
-      careerOpportunities: true,
-      preparationReminders: true,
-      systemNotifications: true,
-      channels: {
-        inApp: true,
-        email: true,
-        push: false
-      }
-    },
-    careerPreferences: {
-      preferredJobRoles: ['Software Engineer', 'AI/ML Engineer', 'Full Stack Developer'],
-      preferredDomains: ['Artificial Intelligence', 'Cloud Infrastructure', 'FinTech'],
-      preferredLocations: ['Bengaluru', 'Hyderabad', 'Pune'],
-      workModes: ['On-site', 'Hybrid'],
-      internshipPreference: true,
-      fullTimePreference: true,
-      careerInterests: ['Distributed Systems', 'Generative AI', 'High-Performance Computing']
-    },
-    privacySettings: {
-      profileVisibility: 'verified-recruiters',
-      recruiterVisibility: true,
-      showSkillsToRecruiters: true,
-      showResumeToRecruiters: true,
-      careerProfileVisibility: true
-    },
-    connectedServices: {
-      googleWorkspace: false,
-      linkedIn: false,
-      gitHub: false,
-      portfolio: false
-    }
-  };
+export function normalizeRole(rawRole?: string): UserRole {
+  if (!rawRole) return 'student';
+  const lower = rawRole.toLowerCase().trim();
+  if (lower === 'recruiter') return 'recruiter';
+  if (lower === 'placement' || lower === 'placement-cell' || lower === 'management') return 'placement';
+  return 'student';
 }
 
-function getDefaultSessions(_role?: AuthRole): SessionInfo[] {
-  return [
-    {
-      id: 'sess-active-local',
-      device: 'MacBook Pro 16" (macOS 15)',
-      browser: 'Chrome 128.0 (Active)',
-      location: 'Bengaluru, Karnataka, IN',
-      ipMasked: '106.51.***.***',
-      current: true,
-      lastActive: 'Active Now'
-    },
-    {
-      id: 'sess-campus-wifi',
-      device: 'RVU Campus Lab Station #04',
-      browser: 'Safari 18.0',
-      location: 'RVU Main Campus, Bengaluru',
-      ipMasked: '14.139.***.***',
-      current: false,
-      lastActive: 'Yesterday at 04:30 PM'
-    }
-  ];
+export interface PasswordStrengthResult {
+  score: number;
+  label: 'Weak' | 'Fair' | 'Strong';
+  message?: string;
 }
 
-// Authentication Service Contract
-export interface IAuthService {
-  login(credentials: LoginCredentials): Promise<LoginResult>;
-  logout(): Promise<void>;
-  getCurrentUser(): AuthUser | null;
-  isAuthenticated(): boolean;
-  getStoredSession(): SafeAuthSession | null;
-  changePassword(currentPassword: string, newPassword: string): Promise<ChangePasswordResult>;
-  evaluatePasswordStrength(password: string): PasswordStrengthResult;
-  getPreferences(): UserPreferences;
-  updatePreferences(updates: Partial<UserPreferences>): UserPreferences;
-  getSessions(): SessionInfo[];
-  terminateOtherSessions(): SessionInfo[];
-  getRememberedIdentifier(): string | null;
-  setRememberedIdentifier(identifier: string | null): void;
+export function evaluatePasswordStrength(password: string): PasswordStrengthResult {
+  if (!password || password.length < 6) {
+    return { score: 1, label: 'Weak', message: 'Password must be at least 6 characters.' };
+  }
+  let score = 2;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score >= 5) {
+    return { score: 3, label: 'Strong' };
+  }
+  if (score >= 3) {
+    return { score: 2, label: 'Fair', message: 'Add numbers or special characters to strengthen password.' };
+  }
+  return { score: 1, label: 'Weak', message: 'Password is too simple.' };
 }
 
-/**
- * DemoAuthService
- * Isolated development/testing authentication service.
- * Accepts any non-empty User ID and password when VITE_DEMO_AUTH=true.
- * Completely local, zero external network or Supabase dependencies.
- */
-export class DemoAuthService implements IAuthService {
-  private currentUser: AuthUser | null = null;
-  private currentSession: SafeAuthSession | null = null;
-  private preferences: UserPreferences = getDefaultPreferences();
-  private activeSessions: SessionInfo[] = [];
-
-  constructor() {
-    this.restoreSessionFromStorage();
-  }
-
-  // Restore existing authenticated session from storage (survives page refresh)
-  private restoreSessionFromStorage(): void {
-    try {
-      const storedJson = getSafeStorageItem(SAFE_SESSION_KEY);
-      if (!storedJson) return;
-
-      const session: SafeAuthSession = JSON.parse(storedJson);
-      if (session && session.authenticated && session.identifier && session.role) {
-        this.currentSession = session;
-        this.currentUser = {
-          id: session.userId || `usr-${session.identifier.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}`,
-          email: session.identifier.includes('@') ? session.identifier : `${session.identifier}@rvu.edu.in`,
-          role: session.role,
-          displayName: session.displayName || deriveDisplayNameFromEmail(session.identifier),
-          isActive: true,
-          mustChangePassword: false,
-          lastLoginAt: session.createdAt,
-          createdAt: session.createdAt,
-          studentId: session.role === 'student' ? '2023BTECH001' : undefined,
-          companyName: session.role === 'recruiter' ? 'RVU Corporate Hiring Partner' : undefined,
-          department: session.role === 'placement-cell' ? 'Career Advisory & Placement' : undefined,
-        };
-        this.activeSessions = getDefaultSessions(session.role);
-      }
-    } catch {
-      // Ignore corrupt local storage data
-    }
-  }
-
-  public isDemoMode(): boolean {
-    const envVal = import.meta.env?.VITE_DEMO_AUTH;
-    return envVal === 'true' || envVal === true || envVal === undefined || import.meta.env?.DEV === true;
-  }
+export class SupabaseAuthService {
+  public normalizeRole = normalizeRole;
+  public evaluatePasswordStrength = evaluatePasswordStrength;
 
   /**
-   * Normal User ID + Password Login
-   * Accepts identifier, password, and portal
+   * Normal Email + Password Login via Supabase Auth
+   * Identity anchor is strictly Supabase Auth + database profiles table.
    */
   public async login(credentials: LoginCredentials): Promise<LoginResult> {
-    const rawIdentifier = credentials.identifier || credentials.email || '';
-    const identifier = rawIdentifier.trim();
+    const email = (credentials.email || credentials.identifier || '').trim().toLowerCase();
     const password = (credentials.password || '').trim();
-    const portal = credentials.role || 'student';
-    const rememberMe = Boolean(credentials.rememberMe || credentials.rememberDevice);
+    const requestedPortal = credentials.role ? normalizeRole(credentials.role) : undefined;
 
-    // 1. Validate non-empty credentials
-    if (!identifier || !password) {
+    if (!email || !password) {
       return {
         success: false,
-        error: 'Please enter your user ID and password.'
+        error: 'Please enter your email address and password.'
       };
     }
 
-    // 2. Validate portal
-    const validPortals = ['student', 'recruiter', 'management', 'placement-cell'];
-    if (!validPortals.includes(portal)) {
+    if (!isSupabaseConfigured() || !supabase) {
       return {
         success: false,
-        error: 'Invalid user ID or password.'
+        error: getSupabaseConfigError() || 'Authentication service is currently unavailable. Please try again later.'
       };
     }
 
-    const normalizedRole: AuthRole = portal === 'management' ? 'placement-cell' : (portal as AuthRole);
-    const redirectTarget = portal === 'student' ? '/student' : portal === 'recruiter' ? '/recruiter' : '/management';
+    try {
+      // 1. Authenticate with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    // 3. Demo Mode Validation
-    if (this.isDemoMode()) {
-      const authUser: AuthUser = {
-        id: `usr-demo-${Date.now().toString(36)}`,
-        email: identifier.includes('@') ? identifier.toLowerCase() : `${identifier.toLowerCase()}@rvu.edu.in`,
-        role: normalizedRole,
-        displayName: deriveDisplayNameFromEmail(identifier),
-        isActive: true,
-        mustChangePassword: false,
-        lastLoginAt: new Date().toISOString(),
-        createdAt: new Date(Date.now() - 60 * 86400000).toISOString(),
-        studentId: normalizedRole === 'student' ? '2023BTECH001' : undefined,
-        companyName: normalizedRole === 'recruiter' ? 'RVU Corporate Hiring Partner' : undefined,
-        department: normalizedRole === 'placement-cell' ? 'Career Advisory & Placement' : undefined,
-      };
-
-      this.currentUser = authUser;
-      this.activeSessions = getDefaultSessions(normalizedRole);
-
-      // Safe session persistence (NO passwords, NO access tokens, NO secret keys)
-      const safeSession: SafeAuthSession = {
-        authenticated: true,
-        identifier,
-        portal,
-        role: normalizedRole,
-        displayName: authUser.displayName,
-        userId: authUser.id,
-        createdAt: new Date().toISOString()
-      };
-
-      this.currentSession = safeSession;
-      setSafeStorageItem(SAFE_SESSION_KEY, JSON.stringify(safeSession), rememberMe);
-
-      if (rememberMe) {
-        setSafeStorageItem(REMEMBERED_IDENTIFIER_KEY, identifier, true);
-      } else {
-        removeSafeStorageItem(REMEMBERED_IDENTIFIER_KEY);
+      if (authError || !authData.user) {
+        return {
+          success: false,
+          error: authError?.message || 'Invalid email or password.'
+        };
       }
+
+      // 2. Fetch authoritative profile from database profiles table
+      const profile = await this.fetchUserProfile(authData.user.id, email);
+
+      if (!profile) {
+        // Safe fallback if profile trigger has slight replication latency
+        const fallbackRole = normalizeRole(authData.user.user_metadata?.role || requestedPortal || 'student');
+        const authUser: AuthUser = {
+          id: authData.user.id,
+          email: authData.user.email || email,
+          role: fallbackRole,
+          displayName: authData.user.user_metadata?.full_name || deriveDisplayNameFromEmail(email),
+          isActive: true,
+          mustChangePassword: false,
+          createdAt: authData.user.created_at
+        };
+
+        const redirect = fallbackRole === 'student' ? '/student' : fallbackRole === 'recruiter' ? '/recruiter' : '/management';
+        return {
+          success: true,
+          user: authUser,
+          redirectRoute: redirect
+        };
+      }
+
+      // 3. Check account active status
+      if (profile.is_active === false) {
+        await supabase.auth.signOut();
+        return {
+          success: false,
+          error: 'Your account is deactivated. Please contact the RVU Placement Cell.'
+        };
+      }
+
+      // 4. Role Enforcement & Conflict Prevention
+      const authoritativeRole = profile.role;
+      if (requestedPortal && requestedPortal !== authoritativeRole) {
+        await supabase.auth.signOut();
+        return {
+          success: false,
+          error: `Access Denied: Account is registered as ${authoritativeRole.toUpperCase()} and cannot access the ${requestedPortal.toUpperCase()} portal.`
+        };
+      }
+
+      const authUser: AuthUser = {
+        id: authData.user.id,
+        profileId: profile.id,
+        email: profile.email,
+        role: authoritativeRole,
+        displayName: profile.full_name || deriveDisplayNameFromEmail(profile.email),
+        avatar: profile.avatar_url || undefined,
+        isActive: profile.is_active,
+        mustChangePassword: false,
+        studentId: profile.student_id || undefined,
+        companyName: profile.company_name || undefined,
+        department: profile.department || undefined,
+        createdAt: profile.created_at
+      };
+
+      const redirectRoute = authoritativeRole === 'student' 
+        ? '/student' 
+        : authoritativeRole === 'recruiter' 
+        ? '/recruiter' 
+        : '/management';
 
       return {
         success: true,
         user: authUser,
-        redirectRoute: redirectTarget
+        redirectRoute
+      };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Authentication failed.';
+      return {
+        success: false,
+        error: message
       };
     }
-
-    // Production mode placeholder for real backend authentication API
-    return {
-      success: false,
-      error: 'Invalid user ID or password.'
-    };
   }
 
   /**
-   * Logout
-   * Clears session, temporary portal state, and returns user to login
+   * Fetch user profile from Supabase profiles table
+   */
+  public async fetchUserProfile(authUserId: string, _fallbackEmail?: string): Promise<ProfileRow | null> {
+    if (!supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('auth_user_id', authUserId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('[RVU Auth] Profile fetch note:', error.message);
+        return null;
+      }
+      return data as ProfileRow | null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Log out authenticated user and terminate Supabase session
    */
   public async logout(): Promise<void> {
-    this.currentUser = null;
-    this.currentSession = null;
-    this.activeSessions = [];
-
-    removeSafeStorageItem(SAFE_SESSION_KEY);
-    removeSafeStorageItem('rvu_selected_portal');
-    removeSafeStorageItem('rvu_intended_role');
-  }
-
-  public getCurrentUser(): AuthUser | null {
-    return this.currentUser;
-  }
-
-  public isAuthenticated(): boolean {
-    return this.currentUser !== null;
-  }
-
-  public getStoredSession(): SafeAuthSession | null {
-    try {
-      const storedJson = getSafeStorageItem(SAFE_SESSION_KEY);
-      if (storedJson) return JSON.parse(storedJson);
-    } catch {
-      // Safe fallback
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // Safe fallback
+      }
     }
-    return this.currentSession;
   }
 
-  public async changePassword(currentPassword: string, newPassword: string): Promise<ChangePasswordResult> {
-    if (!currentPassword.trim() || !newPassword.trim()) {
+  /**
+   * Request password reset via Supabase Auth
+   */
+  public async requestPasswordReset(email: string): Promise<PasswordResetResult> {
+    if (!email || !email.includes('@')) {
+      return { success: false, message: '', error: 'Please enter a valid email address.' };
+    }
+
+    if (!supabase) {
+      return { success: false, message: '', error: 'Authentication service unavailable.' };
+    }
+
+    try {
+      const redirectUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/#/forgot-password` 
+        : undefined;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: redirectUrl
+      });
+
+      if (error) {
+        return { success: false, message: '', error: error.message };
+      }
+
+      return {
+        success: true,
+        message: 'If an account exists for this email, password reset instructions have been sent.'
+      };
+    } catch (err: unknown) {
       return {
         success: false,
-        message: 'Please provide both your current and new password.',
-        error: 'Please provide both your current and new password.'
+        message: '',
+        error: err instanceof Error ? err.message : 'Unable to send password reset.'
       };
     }
+  }
 
-    if (newPassword.trim().length < 6) {
+  /**
+   * Update authenticated user password
+   */
+  public async changePassword(_current: string, newPass: string): Promise<ChangePasswordResult> {
+    if (!newPass || newPass.length < 6) {
       return {
         success: false,
-        message: 'New password must be at least 6 characters.',
+        message: '',
         error: 'New password must be at least 6 characters.'
       };
     }
 
-    if (this.currentUser) {
-      this.currentUser.mustChangePassword = false;
-    }
-
-    return {
-      success: true,
-      message: 'Password updated successfully.'
-    };
-  }
-
-  public evaluatePasswordStrength(password: string): PasswordStrengthResult {
-    if (!password || password.length < 6) {
+    if (!supabase) {
       return {
-        score: 0,
-        label: 'Weak',
-        message: 'Password must be at least 6 characters long.'
+        success: false,
+        message: '',
+        error: 'Authentication service unavailable.'
       };
     }
 
-    let checks = 0;
-    if (password.length >= 8) checks++;
-    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) checks++;
-    if (/[0-9]/.test(password)) checks++;
-    if (/[^A-Za-z0-9]/.test(password)) checks++;
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPass
+      });
 
-    let score = 1;
-    if (checks >= 3) score = 3;
-    else if (checks >= 2) score = 2;
+      if (error) {
+        return {
+          success: false,
+          message: '',
+          error: error.message
+        };
+      }
 
-    const label: 'Weak' | 'Fair' | 'Strong' = 
-      score === 3 ? 'Strong' :
-      score === 2 ? 'Fair' : 'Weak';
+      return {
+        success: true,
+        message: 'Password updated successfully.'
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        message: '',
+        error: err instanceof Error ? err.message : 'Failed to update password.'
+      };
+    }
+  }
 
-    const message = 
-      score === 3 
-        ? 'Great! This is a strong and secure password.' 
-        : score === 2 
-        ? 'Decent password. Adding symbols or mixed case makes it stronger.' 
-        : 'Weak password. Add uppercase letters, numbers, and symbols.';
+  /**
+   * Convert Supabase User + Profile into canonical AuthUser
+   */
+  public mapToAuthUser(user: SupabaseUser, profile: ProfileRow | null): AuthUser {
+    const role: UserRole = profile?.role ? normalizeRole(profile.role) : 'student';
+    const email = profile?.email || user.email || '';
+    const displayName = profile?.full_name || user.user_metadata?.full_name || deriveDisplayNameFromEmail(email);
 
     return {
-      score,
-      label,
-      message
+      id: user.id,
+      profileId: profile?.id,
+      email,
+      role,
+      displayName,
+      avatar: profile?.avatar_url || undefined,
+      isActive: profile?.is_active ?? true,
+      mustChangePassword: false,
+      studentId: profile?.student_id || undefined,
+      companyName: profile?.company_name || undefined,
+      department: profile?.department || undefined,
+      createdAt: profile?.created_at || user.created_at
     };
-  }
-
-  public getPreferences(): UserPreferences {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem(AUTH_PREFS_KEY);
-        if (stored) return JSON.parse(stored);
-      } catch {
-        // Safe fallback
-      }
-    }
-    return this.preferences;
-  }
-
-  public updatePreferences(updates: Partial<UserPreferences>): UserPreferences {
-    this.preferences = { ...this.preferences, ...updates };
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(AUTH_PREFS_KEY, JSON.stringify(this.preferences));
-      } catch {
-        // Safe fallback
-      }
-    }
-    return this.preferences;
-  }
-
-  public getSessions(): SessionInfo[] {
-    return this.activeSessions.length > 0 ? this.activeSessions : getDefaultSessions(this.currentUser?.role || 'student');
-  }
-
-  public terminateOtherSessions(): SessionInfo[] {
-    this.activeSessions = this.activeSessions.filter(s => s.current);
-    return this.activeSessions;
-  }
-
-  public getRememberedIdentifier(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(REMEMBERED_IDENTIFIER_KEY);
-  }
-
-  public setRememberedIdentifier(identifier: string | null): void {
-    if (typeof window === 'undefined') return;
-    if (identifier) {
-      localStorage.setItem(REMEMBERED_IDENTIFIER_KEY, identifier);
-    } else {
-      localStorage.removeItem(REMEMBERED_IDENTIFIER_KEY);
-    }
   }
 }
 
-// Export singleton instance of DemoAuthService
-export const authService = new DemoAuthService();
+export const authService = new SupabaseAuthService();

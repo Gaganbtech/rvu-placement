@@ -42,12 +42,11 @@ import { AlumniLandingView } from './components/alumni/AlumniLandingView';
 import { AlumniJoinView } from './components/alumni/AlumniJoinView';
 
 // Authentication Architecture
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { PortalSelector } from './components/auth/PortalSelector';
 import { LoginPage } from './components/auth/LoginPage';
 import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
-import { RouteGuard } from './components/auth/RouteGuard';
-import { DevAuthStatusPage } from './components/dev/DevAuthStatusPage';
+import { RoleRoute } from './components/auth/RoleRoute';
 import type { AuthRole } from './types/auth';
 
 // Helper to determine the initial route synchronously to prevent blank screen
@@ -57,8 +56,6 @@ const getInitialRoute = (): string => {
   // 1. Check Hash routing first
   const hash = window.location.hash;
   if (
-    hash.startsWith('#/auth/callback') ||
-    hash.startsWith('#/dev/auth-status') ||
     hash.startsWith('#/login') ||
     hash.startsWith('#/portals') ||
     hash.startsWith('#/forgot-password') ||
@@ -76,8 +73,6 @@ const getInitialRoute = (): string => {
   // 2. Check Pathname routing
   const path = window.location.pathname;
   if (
-    path.startsWith('/auth/callback') ||
-    path.startsWith('/dev/auth-status') ||
     path.startsWith('/login') ||
     path.startsWith('/portals') ||
     path.startsWith('/forgot-password') ||
@@ -156,27 +151,59 @@ const AppContent: React.FC = () => {
     }, 50);
   };
 
+  const { isAuthenticated, user, isVerifyingAuth } = useAuth();
+
   const getChatbotRole = (): UserRoleContext => {
-    if (currentRoute.startsWith('/student')) return 'student';
-    if (currentRoute.startsWith('/recruiter')) return 'recruiter';
-    if (currentRoute.startsWith('/management')) return 'management';
+    if (!isAuthenticated || !user) return 'public';
+    if (user.role === 'student') return 'student';
+    if (user.role === 'recruiter') return 'recruiter';
+    if (user.role === 'placement') return 'management';
     return 'public';
   };
 
   const renderPageContent = () => {
+    // Immediate verification state for protected and auth routes during initial boot/sync
+    if (isVerifyingAuth) {
+      const isProtectedOrAuth = 
+        currentRoute.startsWith('/student') ||
+        currentRoute.startsWith('/recruiter') ||
+        currentRoute.startsWith('/management') ||
+        currentRoute.startsWith('/login') ||
+        currentRoute.startsWith('/portals');
+
+      if (isProtectedOrAuth) {
+        return (
+          <div className="min-h-screen bg-[#101A22] text-white flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#19252F] border border-[#CCAA68]/30 flex items-center justify-center p-2 mb-4 shadow-xl animate-pulse">
+              <img 
+                src="/src/assets/rvu-logo-gold.svg" 
+                alt="RV University" 
+                className="w-full h-full object-contain" 
+              />
+            </div>
+            <div className="text-sm font-bold font-display text-white tracking-wide">
+              RV UNIVERSITY • RVU CAREER HUB
+            </div>
+            <div className="text-xs text-[#D8B978] font-mono mt-1">
+              Verifying RVU Career Hub access...
+            </div>
+            <div className="w-6 h-6 rounded-full border-2 border-[#CCAA68] border-t-transparent animate-spin mt-4" />
+          </div>
+        );
+      }
+    }
+
     // 0. AUTHENTICATION & PORTAL SELECTOR ROUTES
     if (currentRoute.startsWith('/auth/callback')) {
       handleNavigatePortal('/login');
       return null;
     }
 
-    if (currentRoute.startsWith('/dev/auth-status')) {
-      return (
-        <DevAuthStatusPage
-          onNavigateHome={handleBackToPublic}
-          onNavigateLogin={() => handleNavigatePortal('/login')}
-        />
-      );
+    // Authenticated users entering /portals or /login are redirected directly to their assigned portal
+    if (isAuthenticated && user && (currentRoute.startsWith('/portals') || currentRoute.startsWith('/login'))) {
+      const authorizedHome = user.role === 'student' ? '/student' : user.role === 'recruiter' ? '/recruiter' : '/management';
+      handleNavigatePortal(authorizedHome);
+      return null;
     }
 
     if (currentRoute.startsWith('/portals')) {
@@ -215,13 +242,12 @@ const AppContent: React.FC = () => {
       );
     }
 
-    // 1. STUDENT PORTAL (All /student and /student/* routes)
+    // 1. STUDENT PORTAL (Strictly for role = 'student')
     if (currentRoute.startsWith('/student')) {
       return (
-        <RouteGuard
-          requiredRole="student"
+        <RoleRoute
+          allowedRoles={['student']}
           currentPath={currentRoute}
-          onNavigateLogin={(role) => handleNavigatePortal(`/login?role=${role}`)}
           onNavigatePortal={handleNavigatePortal}
         >
           <StudentLayout
@@ -229,17 +255,16 @@ const AppContent: React.FC = () => {
             onNavigate={handleNavigatePortal}
             onBackToPublic={handleBackToPublic}
           />
-        </RouteGuard>
+        </RoleRoute>
       );
     }
 
-    // 2. MANAGEMENT PORTAL (All /management and /management/* routes)
+    // 2. PLACEMENT CELL PORTAL (Strictly for role = 'placement')
     if (currentRoute.startsWith('/management')) {
       return (
-        <RouteGuard
-          requiredRole="placement-cell"
+        <RoleRoute
+          allowedRoles={['placement']}
           currentPath={currentRoute}
-          onNavigateLogin={(role) => handleNavigatePortal(`/login?role=${role}`)}
           onNavigatePortal={handleNavigatePortal}
         >
           <ManagementLayout
@@ -247,17 +272,16 @@ const AppContent: React.FC = () => {
             onNavigate={handleNavigatePortal}
             onBackToPublic={handleBackToPublic}
           />
-        </RouteGuard>
+        </RoleRoute>
       );
     }
 
-    // 3. RECRUITER PORTAL (All /recruiter and /recruiter/* routes)
+    // 3. RECRUITER PORTAL (Strictly for role = 'recruiter')
     if (currentRoute.startsWith('/recruiter')) {
       return (
-        <RouteGuard
-          requiredRole="recruiter"
+        <RoleRoute
+          allowedRoles={['recruiter']}
           currentPath={currentRoute}
-          onNavigateLogin={(role) => handleNavigatePortal(`/login?role=${role}`)}
           onNavigatePortal={handleNavigatePortal}
         >
           <RecruiterLayout
@@ -265,7 +289,7 @@ const AppContent: React.FC = () => {
             onNavigate={handleNavigatePortal}
             onBackToPublic={handleBackToPublic}
           />
-        </RouteGuard>
+        </RoleRoute>
       );
     }
 
